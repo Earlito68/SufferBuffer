@@ -53,6 +53,9 @@
   }
   .cp-heading .stg { opacity: 0.7; font-weight: 500; margin-right: 4px; }
   .cp-heading .km2 { opacity: 0.7; font-weight: 500; margin-left: 5px; font-size: 12.5px; }
+  .cp-heading-jump { display: flex; align-items: center; cursor: pointer; }
+  .cp-heading-jump:active { filter: brightness(1.25); }
+  .jump-arrow { margin-left: auto; opacity: 0.6; font-size: 18px; font-weight: 700; }
   .cp-row.control .cp-heading { background: rgba(255,255,255,0.05); }
   .cp-row.bag-red .cp-heading { background: rgba(229,72,77,0.16); }
   .cp-row.bag-white .cp-heading { background: rgba(215,222,230,0.14); }
@@ -73,7 +76,7 @@
   .cp-arrival-row { margin-top: 6px; width: 100%; display: flex; gap: 8px; align-items: stretch; }
   .cp-arrival-row input[type="datetime-local"] {
     color-scheme: dark; font-family: ui-monospace, 'SF Mono', Menlo, monospace; background: #35414f;
-    border: 1px solid #4a5768; color: var(--text); border-radius: 6px; padding: 7px 10px; font-size: 12px;
+    border: 1px solid #4a5768; color: var(--text); border-radius: 6px; padding: 7px 10px; font-size: 14px;
     flex: 1; min-width: 0; box-sizing: border-box; display: block;
   }
   .cp-arrival-row input:focus { border-color: var(--amber); }
@@ -168,7 +171,7 @@
 
 <header class="topbar">
   <div class="topbar-inner">
-    <h1>Sufferbuffer<sup>©</sup> for BRM 1000 Déesse</h1>
+    <h1>SufferBuffer<sup>©</sup> for BRM 1000 Déesse</h1>
     <span class="route">Lugano → Cassis · 1022 km · Start Mi 02.09. 14:00</span>
   </div>
 </header>
@@ -180,7 +183,7 @@
       <h2>Höhenprofil</h2>
       <span class="panel-sub">1022 km · 7 Kontrollen · 3 Schlaf-Stopps</span>
     </div>
-    <svg id="elevChart" viewBox="0 0 1000 317" preserveAspectRatio="none">
+    <svg id="elevChart" viewBox="0 0 1000 345" preserveAspectRatio="none">
       <defs>
         <linearGradient id="greenFill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#3ecf8e" stop-opacity="0.5" />
@@ -197,7 +200,7 @@
       <polyline id="elevLine" fill="none" stroke="#4fe3d4" stroke-width="2" stroke-linejoin="round" />
       <line id="posLine" x1="0" y1="55" x2="0" y2="287" stroke="#eaeff4" stroke-width="1.5" stroke-dasharray="3 3" style="display:none;" />
       <g id="cpDots"></g>
-      <g id="axisLabels" class="mono" font-size="13" fill="#eaeff4" font-weight="600"></g>
+      <g id="axisLabels" class="mono" font-size="26" fill="#eaeff4" font-weight="600"></g>
     </svg>
     <div class="chart-legend">
       <span><i class="dot" style="background:#e5484d;margin-right:2px;"></i><i class="dot" style="background:#d7dee6;margin-right:2px;"></i><i class="dot" style="background:#4c86f5;"></i> Schlaf-Stopps (räumliche Lage)</span>
@@ -440,7 +443,7 @@
   }
 
   /* ================= ELEVATION CHART ================= */
-  var W = 1000, H = 317, PAD_T = 55, PAD_B = 30, SOCKEL = 10;
+  var W = 1000, H = 345, PAD_T = 55, PAD_B = 58, SOCKEL = 10;
   var sleepStops = [
     { km: 304.7, color: '#e5484d' },
     { km: 625.6, color: '#d7dee6' },
@@ -504,6 +507,7 @@
     dotsG.innerHTML = '';
     var axis = document.getElementById('axisLabels');
     axis.innerHTML = '';
+    var axisLastX = -9999, axisLastRow = 0;
     landmarks.forEach(function (lm) {
       var pt = raw[lm.i];
       var reached = lm.ledgerRow === null ? true : (lm.ledgerRow <= state.reachedIndex);
@@ -514,8 +518,13 @@
       c.setAttribute('stroke-width', reached ? '1.5' : '3.5');
       dotsG.appendChild(c);
 
+      var lx = X(pt[0]);
+      var thisRow = 0;
+      if (lx - axisLastX < 70) { thisRow = axisLastRow === 0 ? 1 : 0; }
+      axisLastX = lx; axisLastRow = thisRow;
       var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      t.setAttribute('x', X(pt[0])); t.setAttribute('y', H - 8); t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('x', lx); t.setAttribute('y', thisRow === 0 ? (H - 32) : (H - 8));
+      t.setAttribute('text-anchor', lx < 30 ? 'start' : (lx > 970 ? 'end' : 'middle'));
       t.textContent = Math.round(pt[0]);
       axis.appendChild(t);
     });
@@ -530,8 +539,9 @@
     row.className = 'cp-row ' + d.type;
     row.setAttribute('data-idx', idx);
     row.innerHTML =
-      '<div class="cp-heading">' +
+      '<div class="cp-heading' + (d.stopId ? ' cp-heading-jump' : '') + '"' + (d.stopId ? ' data-jump="' + d.stopId + '"' : '') + '>' +
         '<span class="stg mono">' + d.stg + '</span>' + d.name + '<span class="km2 mono">km ' + d.km + '</span>' +
+        (d.stopId ? '<span class="jump-arrow">›</span>' : '') +
       '</div>' +
       '<div class="cp-checks">' +
         '<label class="cp-check"><input type="checkbox" class="foto-check" data-idx="' + idx + '"><span class="lbl2">Foto</span></label>' +
@@ -560,6 +570,14 @@
       '<div><span class="k">Geplante Ankunft</span><span class="mono">Sa 14:01</span></div>' +
       '<div><span class="k">Minimale Ankunft</span><span class="mono">Sa 16:58</span></div>';
     ledgerEl.appendChild(summary);
+
+    ledgerEl.querySelectorAll('.cp-heading-jump').forEach(function (h) {
+      h.addEventListener('click', function () {
+        var id = h.getAttribute('data-jump');
+        var card = document.querySelector('.stop-card[data-id="' + id + '"]');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
 
     ledgerEl.querySelectorAll('.foto-check').forEach(function (cb) {
       var idx = parseInt(cb.getAttribute('data-idx'));
