@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Fueling" />
+<link rel="apple-touch-icon" href="icon.png">
+<title>Fueling-Strategie — BRM 1000 Déesse</title>
+<style>
+  :root {
+    --bg:#090c10; --surface:#10151c; --surface-2:#171e27;
+    --border:#2a3542; --border-strong:#3d4b5c;
+    --text:#ffffff; --text-dim:#93a1af; --text-faint:#5c6b7a;
+    --amber:#f5a623; --red:#e5484d; --green:#3ecf8e;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  body { background:var(--bg); color:var(--text); font-family:-apple-system,sans-serif; margin:0; padding:16px; padding-bottom: env(safe-area-inset-bottom); }
+  h1 { font-size:19px; margin:0 0 4px; }
+  .sub { color:var(--text-dim); font-size:12.5px; margin-bottom:16px; }
+
+  .sync-box { background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; padding:12px; margin-bottom:16px; }
+  .sync-row { display:flex; gap:10px; align-items:center; }
+  .sync-btn { min-height:44px; min-width:90px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; background:var(--amber); border:none; color:#1a1200; }
+  .sync-btn:active { filter:brightness(0.9); }
+  .sync-status { font-size:12px; color:var(--text-dim); flex:1; line-height:1.4; }
+  .sync-status b { color:var(--text); }
+
+  .legend { display:flex; flex-wrap:wrap; gap:12px; font-size:11.5px; color:var(--text-dim); background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; padding:10px 12px; margin-bottom:18px; }
+  .legend span { display:inline-flex; align-items:center; gap:5px; }
+
+  .row { display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--border); border-radius:10px; margin-bottom:6px; background:var(--surface-2); }
+  .row-closed { opacity:0.6; border-color:rgba(229,72,77,0.35); }
+  .row-check { width:17px; height:17px; accent-color:var(--amber); flex-shrink:0; margin-top:2px; cursor:pointer; }
+  .row-icon { font-size:17px; flex-shrink:0; width:22px; text-align:center; }
+  .row-main { flex:1; min-width:0; }
+  .row-top { display:flex; justify-content:space-between; font-family:ui-monospace,monospace; font-size:12.5px; }
+  .row-km { font-weight:700; }
+  .row-time { color:var(--text-dim); }
+  .row-label { font-size:12.5px; color:var(--text-dim); margin-top:2px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .tag { font-size:9.5px; font-weight:700; padding:2px 6px; border-radius:5px; text-transform:uppercase; }
+  .tag-open { background:rgba(62,207,142,0.18); color:var(--green); }
+  .tag-closed { background:rgba(229,72,77,0.18); color:var(--red); }
+  .pet-note { font-size:11.5px; color:var(--amber); margin-top:4px; font-weight:600; }
+  .row:has(.row-check:checked) { opacity:0.5; }
+  .row:has(.row-check:checked) .row-label { text-decoration:line-through; }
+
+  .footer-actions { display:flex; gap:10px; margin-top:16px; }
+  .footer-btn { flex:1; min-height:48px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; background:var(--surface); border:1px solid var(--border-strong); color:var(--text); }
+  .footer-btn:active { background:var(--surface-2); }
+  .footer-btn.danger { color:var(--red); border-color:rgba(229,72,77,0.4); }
+  .export-box { margin-top:10px; display:none; }
+  .export-hint { font-size:11px; color:var(--text-dim); margin:0 0 6px; }
+  .export-box textarea { width:100%; height:140px; box-sizing:border-box; background:var(--surface); color:var(--text); border:1px solid var(--border-strong); border-radius:8px; padding:10px; font-family:ui-monospace,monospace; font-size:11px; line-height:1.5; }
+
+  .foot { text-align:center; padding:20px 0 8px; font-size:10.5px; color:var(--text-faint); }
+</style>
+</head>
+<body>
+
+<h1>Fueling-Strategie — BRM 1000 Déesse</h1>
+<div class="sub">Kuratierte Stopps auf 2.5h-Malto-Rhythmus · nur Bag-Drops + Cuesheet-Wasserpunkte + geprüfte Supermärkte/Tankstellen · Stand 22.08.2026</div>
+
+<div class="sync-box">
+  <div class="sync-row">
+    <button type="button" class="sync-btn" id="syncBtn">JETZT</button>
+    <div class="sync-status" id="syncStatus">±0:00h</div>
+  </div>
+</div>
+
+<div class="legend">
+  <span>💧 Wasser/Malto</span>
+  <span>🎒 Bag-Drop (Wasser + Essen)</span>
+  <span>🛒 Supermarkt/Restaurant</span>
+  <span>⛽ Tankstelle</span>
+</div>
+
+
+    <div class="row " data-idx="0" data-planned="2026-09-02T17:20" >
+      <input type="checkbox" class="row-check" data-cidx="0">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 69.01</span><span class="row-time" data-time-el>Mi 17:20</span></div>
+        <div class="row-label"><span data-label-el>Wasserstelle</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="1" data-planned="2026-09-02T19:03" >
+      <input type="checkbox" class="row-check" data-cidx="1">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 104.35</span><span class="row-time" data-time-el>Mi 19:03</span></div>
+        <div class="row-label"><span data-label-el>WTR S</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="2" data-planned="2026-09-02T21:31" >
+      <input type="checkbox" class="row-check" data-cidx="2">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 155.16</span><span class="row-time" data-time-el>Mi 21:31</span></div>
+        <div class="row-label"><span data-label-el>WTR R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="3" data-planned="2026-09-02T23:20" >
+      <input type="checkbox" class="row-check" data-cidx="3">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 192.59</span><span class="row-time" data-time-el>Mi 23:20</span></div>
+        <div class="row-label"><span data-label-el>WTR R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="4" data-planned="2026-09-03T00:47" >
+      <input type="checkbox" class="row-check" data-cidx="4">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 222.49</span><span class="row-time" data-time-el>Do 00:47</span></div>
+        <div class="row-label"><span data-label-el>Wasserstelle</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="5" data-planned="2026-09-03T03:17" >
+      <input type="checkbox" class="row-check" data-cidx="5">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 269.72</span><span class="row-time" data-time-el>Do 03:17</span></div>
+        <div class="row-label"><span data-label-el>WTR S</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="6" data-planned="2026-09-03T04:54" style="border-left:5px solid #e5484d; background:rgba(229,72,77,0.12);">
+      <input type="checkbox" class="row-check" data-cidx="6">
+      <div class="row-icon">🎒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 304.18</span><span class="row-time" data-time-el>Do 04:54</span></div>
+        <div class="row-label"><span data-label-el>Saluzzo — Bag ROT</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="7" data-planned="2026-09-03T11:20" >
+      <input type="checkbox" class="row-check" data-cidx="7">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 340.16</span><span class="row-time" data-time-el>Do 11:20</span></div>
+        <div class="row-label"><span data-label-el>WTR L Ecke</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="8" data-planned="2026-09-03T12:49" >
+      <input type="checkbox" class="row-check" data-cidx="8">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 359.99</span><span class="row-time" data-time-el>Do 12:49</span></div>
+        <div class="row-label"><span data-label-el>WTR R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="9" data-planned="2026-09-03T15:02" >
+      <input type="checkbox" class="row-check" data-cidx="9">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 389.55</span><span class="row-time" data-time-el>Do 15:02</span></div>
+        <div class="row-label"><span data-label-el>WTR R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="10" data-planned="2026-09-03T16:57" data-hours="830-1230 1530-1930" >
+      <input type="checkbox" class="row-check" data-cidx="10">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 415.17</span><span class="row-time" data-time-el>Do 16:57</span></div>
+        <div class="row-label"><span data-label-el>Supermarkt L, 8:30–12:30 / 15:30–19:30</span><span class="tag tag-open" data-status-el>OFFEN</span></div>
+        <div class="pet-note">🧴 PET-Flasche mitnehmen — nächste sichere Quelle erst in 50 km</div>
+      </div>
+    </div>
+
+    <div class="row " data-idx="11" data-planned="2026-09-03T16:57" >
+      <input type="checkbox" class="row-check" data-cidx="11">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 415.29</span><span class="row-time" data-time-el>Do 16:57</span></div>
+        <div class="row-label"><span data-label-el>WTR L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="12" data-planned="2026-09-03T17:12" >
+      <input type="checkbox" class="row-check" data-cidx="12">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 418.63</span><span class="row-time" data-time-el>Do 17:12</span></div>
+        <div class="row-label"><span data-label-el>WTR L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="13" data-planned="2026-09-03T20:41" >
+      <input type="checkbox" class="row-check" data-cidx="13">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 465.15</span><span class="row-time" data-time-el>Do 20:41</span></div>
+        <div class="row-label"><span data-label-el>WTR R — Il Cavagno (SM daneben, zu dieser Zeit geschlossen)</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="14" data-planned="2026-09-03T23:02" >
+      <input type="checkbox" class="row-check" data-cidx="14">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 493.63</span><span class="row-time" data-time-el>Do 23:02</span></div>
+        <div class="row-label"><span data-label-el>WTR L auf PP</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="15" data-planned="2026-09-04T00:19" >
+      <input type="checkbox" class="row-check" data-cidx="15">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 517.12</span><span class="row-time" data-time-el>Fr 00:19</span></div>
+        <div class="row-label"><span data-label-el>Wasserstelle</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="16" data-planned="2026-09-04T01:55" >
+      <input type="checkbox" class="row-check" data-cidx="16">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 546.24</span><span class="row-time" data-time-el>Fr 01:55</span></div>
+        <div class="row-label"><span data-label-el>WTR L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="17" data-planned="2026-09-04T03:54" >
+      <input type="checkbox" class="row-check" data-cidx="17">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 578.99</span><span class="row-time" data-time-el>Fr 03:54</span></div>
+        <div class="row-label"><span data-label-el>WTR R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="18" data-planned="2026-09-04T06:16" style="border-left:5px solid #d7dee6; background:rgba(215,222,230,0.12);">
+      <input type="checkbox" class="row-check" data-cidx="18">
+      <div class="row-icon">🎒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 624.94</span><span class="row-time" data-time-el>Fr 06:16</span></div>
+        <div class="row-label"><span data-label-el>CP-5 Cannes — Bag WEISS</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="19" data-planned="2026-09-04T12:37" data-hours="830-20" >
+      <input type="checkbox" class="row-check" data-cidx="19">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 662.48</span><span class="row-time" data-time-el>Fr 12:37</span></div>
+        <div class="row-label"><span data-label-el>Supermarkt, 8:30–20</span><span class="tag tag-open" data-status-el>OFFEN</span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="20" data-planned="2026-09-04T14:11" >
+      <input type="checkbox" class="row-check" data-cidx="20">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 687.29</span><span class="row-time" data-time-el>Fr 14:11</span></div>
+        <div class="row-label"><span data-label-el>WTR L (Notfall)</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row row-closed" data-idx="21" data-planned="2026-09-04T15:24" data-hours="07-13 1530-19" >
+      <input type="checkbox" class="row-check" data-cidx="21">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 706.58</span><span class="row-time" data-time-el>Fr 15:24</span></div>
+        <div class="row-label"><span data-label-el>Bäckerei R, 07–13 / 15:30–19</span><span class="tag tag-closed" data-status-el>GESCHLOSSEN</span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="22" data-planned="2026-09-04T15:24" data-hours="07-19" >
+      <input type="checkbox" class="row-check" data-cidx="22">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 706.69</span><span class="row-time" data-time-el>Fr 15:24</span></div>
+        <div class="row-label"><span data-label-el>Supermarkt R, 07–19 — sichere Wahl</span><span class="tag tag-open" data-status-el>OFFEN</span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="23" data-planned="2026-09-04T17:25" >
+      <input type="checkbox" class="row-check" data-cidx="23">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 738.78</span><span class="row-time" data-time-el>Fr 17:25</span></div>
+        <div class="row-label"><span data-label-el>Wasserstelle</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="24" data-planned="2026-09-04T19:31" data-hours="830-20" >
+      <input type="checkbox" class="row-check" data-cidx="24">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 772.05</span><span class="row-time" data-time-el>Fr 19:31</span></div>
+        <div class="row-label"><span data-label-el>Supermarkt L, 8:30–20</span><span class="tag tag-open" data-status-el>OFFEN</span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="25" data-planned="2026-09-04T20:30" data-hours="09:30-22" >
+      <input type="checkbox" class="row-check" data-cidx="25">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 787.94</span><span class="row-time" data-time-el>Fr 20:30</span></div>
+        <div class="row-label"><span data-label-el>Restaurant, 9:30–22</span><span class="tag tag-open" data-status-el>OFFEN</span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="26" data-planned="2026-09-04T22:25" >
+      <input type="checkbox" class="row-check" data-cidx="26">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 818.28</span><span class="row-time" data-time-el>Fr 22:25</span></div>
+        <div class="row-label"><span data-label-el>Wasserstelle</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="27" data-planned="2026-09-04T23:22" style="border-left:5px solid #4c86f5; background:rgba(76,134,245,0.12);">
+      <input type="checkbox" class="row-check" data-cidx="27">
+      <div class="row-icon">🎒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 833.45</span><span class="row-time" data-time-el>Fr 23:22</span></div>
+        <div class="row-label"><span data-label-el>CP-6 Valensole — Bag BLAU</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="28" data-planned="2026-09-05T05:43" >
+      <input type="checkbox" class="row-check" data-cidx="28">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 876.95</span><span class="row-time" data-time-el>Sa 05:43</span></div>
+        <div class="row-label"><span data-label-el>Wasserstelle</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="29" data-planned="2026-09-05T07:13" >
+      <input type="checkbox" class="row-check" data-cidx="29">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 904.82</span><span class="row-time" data-time-el>Sa 07:13</span></div>
+        <div class="row-label"><span data-label-el>Wasserstelle</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="30" data-planned="2026-09-05T08:33" data-hours="07-19" >
+      <input type="checkbox" class="row-check" data-cidx="30">
+      <div class="row-icon">⛽</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 929.64</span><span class="row-time" data-time-el>Sa 08:33</span></div>
+        <div class="row-label"><span data-label-el>Tankstelle, 07–19 — wenn offen nutzen</span><span class="tag tag-open" data-status-el>OFFEN</span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="31" data-planned="2026-09-05T09:49" data-hours="8-20" >
+      <input type="checkbox" class="row-check" data-cidx="31">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 947.89</span><span class="row-time" data-time-el>Sa 09:49</span></div>
+        <div class="row-label"><span data-label-el>Supermarkt L, 8–20</span><span class="tag tag-open" data-status-el>OFFEN</span></div>
+        <div class="pet-note">🧴 PET-Flasche mitnehmen — letzte Quelle vor 51 km Lücke zum Ziel</div>
+      </div>
+    </div>
+
+    <div class="row " data-idx="32" data-planned="2026-09-05T10:07" data-hours="10-24" >
+      <input type="checkbox" class="row-check" data-cidx="32">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 953.14</span><span class="row-time" data-time-el>Sa 10:07</span></div>
+        <div class="row-label"><span data-label-el>McDonald's L, 10–24</span><span class="tag tag-open" data-status-el>OFFEN</span></div>
+        
+      </div>
+    </div>
+
+    <div class="row " data-idx="33" data-planned="2026-09-05T13:05" >
+      <input type="checkbox" class="row-check" data-cidx="33">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 1004.66</span><span class="row-time" data-time-el>Sa 13:05</span></div>
+        <div class="row-label"><span data-label-el>Wasserstelle</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+<div class="footer-actions">
+  <button type="button" id="exportBtn" class="footer-btn">Fortschritt kopieren</button>
+  <button type="button" id="resetBtn" class="footer-btn danger">Reset</button>
+</div>
+<div id="exportBox" class="export-box">
+  <p class="export-hint" id="exportHint">Text unten antippen, alles markieren, kopieren.</p>
+  <textarea id="exportText" readonly></textarea>
+</div>
+
+<div class="foot">
+  Zwei bewusste Ausnahmen vom 2.5h-Rhythmus (km 415 und km 947.9) — dort überbrückt eine mitgeführte PET-Flasche die Lücke.<br>
+  Uhrzeiten sind Prognosen aus dem Pacing-Plan · JETZT-Abgleich liest die zuletzt im Dashboard gespeicherte Ankunftszeit, sofern beide Seiten von derselben Adresse geladen wurden.
+</div>
+
+<script>
+(function() {
+  "use strict";
+  var STORE_KEY = "brm1000_fueling_strategie_v2";
+  var TOTAL = 34;
+  var DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+  // Dashboard-Kontrollpunkte (Plan-Ankunftszeiten), zum Abgleich mit dessen gespeichertem Fortschritt.
+  var checkpoints = [
+    { km: 234, planned: new Date('2026-09-03T01:21') },
+    { km: 305, planned: new Date('2026-09-03T04:54') },
+    { km: 341, planned: new Date('2026-09-03T10:50') },
+    { km: 481, planned: new Date('2026-09-03T21:49') },
+    { km: 560, planned: new Date('2026-09-04T02:37') },
+    { km: 626, planned: new Date('2026-09-04T06:16') },
+    { km: 835, planned: new Date('2026-09-04T23:22') },
+    { km: 939, planned: new Date('2026-09-05T09:00') },
+    { km: 1022,planned: new Date('2026-09-05T14:01') }
+  ];
+
+  function loadState() {
+    try { var raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : {}; }
+    catch (e) { return {}; }
+  }
+  var saved = loadState();
+  var checked = Array.isArray(saved.checked) && saved.checked.length === TOTAL ? saved.checked : new Array(TOTAL).fill(false);
+  var deviationMs = typeof saved.deviationMs === 'number' ? saved.deviationMs : 0;
+
+  function saveState() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ checked: checked, deviationMs: deviationMs })); } catch (e) { /* in-memory only */ }
+  }
+
+  document.querySelectorAll('.row-check').forEach(function(box) {
+    var idx = parseInt(box.getAttribute('data-cidx'));
+    box.checked = !!checked[idx];
+    box.addEventListener('change', function() {
+      checked[idx] = box.checked;
+      saveState();
+    });
+  });
+
+  function parseHours(str) {
+    if (!str) return null;
+    var s = str.replace(/–|—/g, '-');
+    var re = /(\d{1,2}:\d{2}|\d{1,4})\s*-\s*(\d{1,2}:\d{2}|\d{1,4})/g;
+    var m, out = [];
+    function toMin(tok) {
+      if (tok.indexOf(':') >= 0) { var p = tok.split(':'); return parseInt(p[0])*60 + parseInt(p[1]); }
+      return tok.length <= 2 ? parseInt(tok)*60 : parseInt(tok.slice(0,-2))*60 + parseInt(tok.slice(-2));
+    }
+    while ((m = re.exec(s)) !== null) {
+      try { out.push([toMin(m[1]), toMin(m[2])]); } catch(e) {}
+    }
+    return out;
+  }
+  function isOpenAt(hoursStr, date) {
+    var ranges = parseHours(hoursStr);
+    if (!ranges || !ranges.length) return null;
+    var cur = date.getHours()*60 + date.getMinutes();
+    return ranges.some(function(r) { return cur >= r[0] && cur <= r[1]; });
+  }
+  function fmtDayTime(d) {
+    var p = function(n) { return String(n).padStart(2,'0'); };
+    return DAYS[d.getDay()] + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function applyDeviation() {
+    document.querySelectorAll('.row').forEach(function(rowEl) {
+      var plannedIso = rowEl.getAttribute('data-planned');
+      var planned = new Date(plannedIso);
+      var shifted = new Date(planned.getTime() + deviationMs);
+      rowEl.querySelector('[data-time-el]').textContent = fmtDayTime(shifted);
+      var hours = rowEl.getAttribute('data-hours');
+      var statusEl = rowEl.querySelector('[data-status-el]');
+      if (hours) {
+        var open = isOpenAt(hours, shifted);
+        statusEl.style.display = '';
+        statusEl.textContent = open ? 'OFFEN' : 'GESCHLOSSEN';
+        statusEl.className = 'tag ' + (open ? 'tag-open' : 'tag-closed');
+        rowEl.classList.toggle('row-closed', !open);
+      }
+    });
+  }
+  applyDeviation();
+
+  var syncBtn = document.getElementById('syncBtn');
+  var syncStatus = document.getElementById('syncStatus');
+
+  syncBtn.addEventListener('click', function() {
+    var dashRaw;
+    try { dashRaw = localStorage.getItem('brm1000_deesse_v4'); }
+    catch (e) { syncStatus.textContent = 'kein Zugriff'; return; }
+
+    var arr = null;
+    if (dashRaw) {
+      try {
+        var dash = JSON.parse(dashRaw);
+        if (Array.isArray(dash.arr)) arr = dash.arr;
+      } catch (e) { /* faellt unten auf die Start-Rueckfallebene zurueck */ }
+    }
+
+    var lastIdx = -1;
+    if (arr) {
+      for (var i = arr.length - 1; i >= 0; i--) { if (arr[i]) { lastIdx = i; break; } }
+    }
+
+    if (lastIdx === -1) {
+      // Vor CP1 (km 234) gibt es noch keinen eingetragenen Kontrollpunkt.
+      // Rueckfallebene: Start (Mi 14:00) als Anker nehmen, punktueller Massenstart angenommen.
+      deviationMs = 0;
+      saveState();
+      applyDeviation();
+      syncStatus.textContent = '±0:00h';
+      return;
+    }
+
+    var actual = new Date(arr[lastIdx]);
+    var plannedCp = checkpoints[lastIdx].planned;
+    deviationMs = actual.getTime() - plannedCp.getTime();
+    saveState();
+    applyDeviation();
+
+    var devH = deviationMs / 3600000;
+    var sign = devH >= 0 ? '+' : '-';
+    var absH = Math.abs(devH);
+    var hh = Math.floor(absH), mm = Math.round((absH-hh)*60);
+    syncStatus.textContent = sign + hh + ':' + String(mm).padStart(2,'0') + 'h';
+  });
+
+  // beim Laden: gespeicherte Abweichung sofort minimal anzeigen
+  var devH0 = deviationMs / 3600000;
+  var sign0 = devH0 >= 0 ? '+' : '-';
+  var absH0 = Math.abs(devH0);
+  var hh0 = Math.floor(absH0), mm0 = Math.round((absH0-hh0)*60);
+  syncStatus.textContent = sign0 + hh0 + ':' + String(mm0).padStart(2,'0') + 'h';
+
+  function buildExportText() {
+    var lines = ['Fueling-Strategie SufferBuffer\u00A9 \u2014 Stand ' + new Date().toLocaleString('de-DE')];
+    lines.push('');
+    document.querySelectorAll('.row').forEach(function(row) {
+      var box = row.querySelector('.row-check');
+      var km = row.querySelector('.row-km').textContent;
+      var label = row.querySelector('[data-label-el]').textContent;
+      var mark = box.checked ? '[x]' : '[ ]';
+      lines.push(mark + ' ' + km + ' \u2014 ' + label);
+    });
+    return lines.join('\n');
+  }
+  document.getElementById('exportBtn').addEventListener('click', function() {
+    var text = buildExportText();
+    var box = document.getElementById('exportBox');
+    var ta = document.getElementById('exportText');
+    var hint = document.getElementById('exportHint');
+    ta.value = text; box.style.display = 'block'; ta.focus(); ta.select();
+    var copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() { copied = true; hint.textContent = 'Automatisch kopiert \u2713 \u2014 alternativ Text unten manuell markieren.'; });
+      }
+    } catch (e) {}
+    try { if (!copied) document.execCommand('copy'); } catch (e) {}
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function() {
+    if (!window.confirm('Wirklich alle Haekchen und den Zeitabgleich zuruecksetzen?')) return;
+    checked = new Array(TOTAL).fill(false);
+    deviationMs = 0;
+    saveState();
+    document.querySelectorAll('.row-check').forEach(function(box) {
+      var idx = parseInt(box.getAttribute('data-cidx'));
+      box.checked = !!checked[idx];
+    });
+    applyDeviation();
+    syncStatus.textContent = 'Zurückgesetzt auf Basisplan.';
+    document.getElementById('exportBox').style.display = 'none';
+  });
+})();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  });
+}
+</script>
+
+</body>
+</html>
