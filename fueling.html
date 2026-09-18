@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Fueling200" />
+<link rel="apple-touch-icon" href="icon.png">
+<title>Fueling — BRM 200 Schönbuch</title>
+<style>
+  :root {
+    --bg:#090c10; --surface:#10151c; --surface-2:#171e27;
+    --border:#2a3542; --border-strong:#3d4b5c;
+    --text:#ffffff; --text-dim:#93a1af; --text-faint:#5c6b7a;
+    --amber:#f5a623; --red:#e5484d; --green:#3ecf8e; --blue:#4c86f5;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,sans-serif; margin:0; padding:16px; padding-block-end: max(16px, env(safe-area-inset-bottom, 0px)); }
+  h1 { font-size:19px; margin:0 0 4px; letter-spacing:-0.01em; }
+  .sub { color:var(--text-dim); font-size:12.5px; margin-bottom:16px; line-height:1.5; }
+  .nav-link { font-size: 11.5px; color: var(--amber); display: block; margin: 4px 0 12px; text-decoration: none; font-weight: 600; }
+
+  .sync-box { background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; padding:12px; margin-bottom:16px; }
+  .sync-row { display:flex; gap:10px; align-items:center; }
+  .sync-btn { min-height:44px; min-width:90px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; background:var(--amber); border:none; color:#1a1200; }
+  .sync-btn:active { filter:brightness(0.9); }
+  .sync-btn:focus-visible { outline:2px solid var(--text); outline-offset:2px; }
+  .sync-status { font-size:12px; color:var(--text-dim); flex:1; line-height:1.4; font-variant-numeric:tabular-nums; }
+  .sync-hint { font-size:11px; color:var(--text-faint); margin-top:8px; line-height:1.4; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:12px; font-size:11.5px; color:var(--text-dim); background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; padding:10px 12px; margin-bottom:18px; }
+  .legend span { display:inline-flex; align-items:center; gap:5px; }
+
+  .row { display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--border); border-radius:10px; margin-bottom:6px; background:var(--surface-2); }
+  .row-check { width:17px; height:17px; accent-color:var(--amber); flex-shrink:0; margin-top:2px; cursor:pointer; }
+  .row-check:focus-visible { outline:2px solid var(--text); outline-offset:2px; }
+  .row-icon { font-size:17px; flex-shrink:0; width:22px; text-align:center; }
+  .row-main { flex:1; min-width:0; }
+  .row-top { display:flex; justify-content:space-between; gap:8px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; }
+  .row-km { font-weight:700; }
+  .row-time { color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  .row-label { font-size:12.5px; color:var(--text-dim); margin-top:2px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .tag { font-size:9.5px; font-weight:700; padding:2px 6px; border-radius:5px; text-transform:uppercase; letter-spacing:0.03em; }
+  .tag-cp { background:rgba(76,134,245,0.18); color:var(--blue); }
+  .note { font-size:11.5px; color:var(--amber); margin-top:4px; font-weight:600; line-height:1.4; }
+  .row:has(.row-check:checked) { opacity:0.5; }
+  .row:has(.row-check:checked) .row-label { text-decoration:line-through; }
+
+  .footer-actions { display:flex; gap:10px; margin-top:16px; }
+  .footer-btn { flex:1; min-height:48px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; background:var(--surface); border:1px solid var(--border-strong); color:var(--text); }
+  .footer-btn:active { background:var(--surface-2); }
+  .footer-btn:focus-visible { outline:2px solid var(--text); outline-offset:2px; }
+  .footer-btn.danger { color:var(--red); border-color:rgba(229,72,77,0.4); }
+  .export-box { margin-top:10px; }
+  .export-hint { font-size:11px; color:var(--text-dim); margin:0 0 6px; }
+  .export-box textarea { width:100%; height:140px; box-sizing:border-box; background:var(--surface); color:var(--text); border:1px solid var(--border-strong); border-radius:8px; padding:10px; font-family:ui-monospace,monospace; font-size:11px; line-height:1.5; }
+
+  .foot { text-align:center; padding:20px 0 8px; font-size:10.5px; color:var(--text-faint); line-height:1.6; }
+</style>
+</head>
+<body>
+<h1>Fueling — BRM 200 Schönbuch</h1>
+<a href="./index.html" class="nav-link">← Zurück zum Dashboard</a>
+<div class="sub">7 Pflicht-Nachfüllstopps ("o"-Marker) · Malto-/Riegel-Sweetspot 2h · Sa 19.09.2026, Start 08:00 · Soll-Zeiten aus dem Timesheet-Pacing (25 km/h Basis, Faktor auf 1.6 / ab −0.4)</div>
+
+<div class="sync-box">
+  <div class="sync-row">
+    <button type="button" class="sync-btn" id="syncBtn">JETZT</button>
+    <div class="sync-status" id="syncStatus">±0:00h</div>
+  </div>
+  <div class="sync-hint">JETZT tippen, um die zuletzt im Dashboard eingetragene Ankunftszeit zu übernehmen — verschiebt alle Zeiten unten entsprechend.</div>
+</div>
+
+<div class="legend">
+  <span>💧 Wasser</span>
+  <span>🛒 Bäckerei/Laden</span>
+  <span>⛽ Tankstelle</span>
+  <span>📍 Kontrolle (CP)</span>
+</div>
+
+<div class="row" data-idx="0" data-planned="2026-09-19T10:00:13">
+  <input type="checkbox" class="row-check" data-cidx="0" id="cb0">
+  <label class="row-main" for="cb0">
+    <div class="row-top"><span class="row-km">km 41.2</span><span class="row-time" data-time-el>10:00</span></div>
+    <div class="row-label"><span class="row-icon" aria-hidden="true">⛽</span><span data-label-el>Wildberg — GS R 6-20 + WTR L</span></div>
+  </label>
+</div>
+
+<div class="row" data-idx="1" data-planned="2026-09-19T11:35:38">
+  <input type="checkbox" class="row-check" data-cidx="1" id="cb1">
+  <label class="row-main" for="cb1">
+    <div class="row-top"><span class="row-km">km 63.1</span><span class="row-time" data-time-el>11:35</span></div>
+    <div class="row-label"><span class="row-icon" aria-hidden="true">📍</span><span data-label-el>CP1 Simmersfeld — Bäckerei/Netto</span><span class="tag tag-cp">Kontrolle</span></div>
+  </label>
+</div>
+
+<div class="row" data-idx="2" data-planned="2026-09-19T12:31:21">
+  <input type="checkbox" class="row-check" data-cidx="2" id="cb2">
+  <label class="row-main" for="cb2">
+    <div class="row-top"><span class="row-km">km 74.6</span><span class="row-time" data-time-el>12:31</span></div>
+    <div class="row-label"><span class="row-icon" aria-hidden="true">💧</span><span data-label-el>WTR R — Seewald</span></div>
+  </label>
+</div>
+
+<div class="row" data-idx="3" data-planned="2026-09-19T14:16:55">
+  <input type="checkbox" class="row-check" data-cidx="3" id="cb3">
+  <label class="row-main" for="cb3">
+    <div class="row-top"><span class="row-km">km 99.8</span><span class="row-time" data-time-el>14:16</span></div>
+    <div class="row-label"><span class="row-icon" aria-hidden="true">💧</span><span data-label-el>WTR R — Seebach</span></div>
+  </label>
+</div>
+
+<div class="row" data-idx="4" data-planned="2026-09-19T16:22:18">
+  <input type="checkbox" class="row-check" data-cidx="4" id="cb4">
+  <label class="row-main" for="cb4">
+    <div class="row-top"><span class="row-km">km 135.1</span><span class="row-time" data-time-el>16:22</span></div>
+    <div class="row-label"><span class="row-icon" aria-hidden="true">📍</span><span data-label-el>CP3 Freudenstadt Marktplatz (+ TLT S)</span><span class="tag tag-cp">Kontrolle</span></div>
+  </label>
+</div>
+
+<div class="row" data-idx="5" data-planned="2026-09-19T18:49:23">
+  <input type="checkbox" class="row-check" data-cidx="5" id="cb5">
+  <label class="row-main" for="cb5">
+    <div class="row-top"><span class="row-km">km 175.5</span><span class="row-time" data-time-el>18:49</span></div>
+    <div class="row-label"><span class="row-icon" aria-hidden="true">🛒</span><span data-label-el>SM BKR Gäufelden — bei CP4</span></div>
+    <div class="note">⚠️ Bäckerei (bis 17:00) bei geplanter Ankunft schon zu — Lidl (bis 21:00) noch offen</div>
+  </label>
+</div>
+
+<div class="footer-actions">
+  <button type="button" id="exportBtn" class="footer-btn">Fortschritt kopieren</button>
+  <button type="button" id="resetBtn" class="footer-btn danger">Reset</button>
+</div>
+<div id="exportBox" class="export-box" hidden>
+  <p class="export-hint" id="exportHint">Text unten antippen, alles markieren, kopieren.</p>
+  <textarea id="exportText" readonly></textarea>
+</div>
+
+<div class="foot">
+  Uhrzeiten sind Prognosen aus dem Timesheet-Pacing, keine offiziellen Kontrollzeiten. JETZT-Abgleich liest die zuletzt im Dashboard gespeicherte Ankunftszeit, sofern beide Seiten von derselben Adresse geladen wurden.
+</div>
+
+<script>
+(function() {
+  "use strict";
+  var STORE_KEY = "brm200_schoenbuch_fueling_v1";
+  var TOTAL = 6;
+
+  function loadState() {
+    try { var raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : {}; }
+    catch (e) { return {}; }
+  }
+  var saved = loadState();
+  var checked = Array.isArray(saved.checked) && saved.checked.length === TOTAL ? saved.checked : new Array(TOTAL).fill(false);
+  var deviationMs = typeof saved.deviationMs === 'number' ? saved.deviationMs : 0;
+
+  function saveState() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ checked: checked, deviationMs: deviationMs })); } catch (e) { /* in-memory only */ }
+  }
+
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.row'));
+
+  rows.forEach(function(rowEl) {
+    var box = rowEl.querySelector('.row-check');
+    var idx = parseInt(box.getAttribute('data-cidx'), 10);
+    box.checked = !!checked[idx];
+    box.addEventListener('change', function() {
+      checked[idx] = box.checked;
+      saveState();
+    });
+  });
+
+  function fmtTime(d) {
+    var p = function(n) { return String(n).padStart(2, '0'); };
+    return p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function applyDeviation() {
+    rows.forEach(function(rowEl) {
+      var planned = new Date(rowEl.getAttribute('data-planned'));
+      var shifted = new Date(planned.getTime() + deviationMs);
+      rowEl.querySelector('[data-time-el]').textContent = fmtTime(shifted);
+    });
+  }
+  applyDeviation();
+
+  // Anzeige-Konvention exakt wie im Dashboard: Vorsprung (Ist vor Plan) = positiv/gruen,
+  // Rueckstand = negativ/rot. deviationMs selbst bleibt unveraendert (Ist - Plan), nur
+  // die Anzeige spiegelt das Vorzeichen — die Zeitverschiebung oben rechnet weiterhin korrekt.
+  function fmtDeviation(ms) {
+    var displayMs = -ms;
+    var h = displayMs / 3600000;
+    var sign = h >= 0 ? '+' : '-';
+    var absH = Math.abs(h);
+    var hh = Math.floor(absH), mm = Math.round((absH - hh) * 60);
+    if (mm === 60) { hh += 1; mm = 0; }
+    return sign + hh + ':' + String(mm).padStart(2, '0') + 'h';
+  }
+
+  function setSyncStatus(ms) {
+    syncStatus.textContent = fmtDeviation(ms);
+    var displayMs = -ms;
+    syncStatus.style.color = displayMs > 0 ? 'var(--green)' : (displayMs < 0 ? 'var(--red)' : '');
+  }
+
+  var syncBtn = document.getElementById('syncBtn');
+  var syncStatus = document.getElementById('syncStatus');
+  setSyncStatus(deviationMs);
+
+  // Kontrollpunkte des Dashboards (index.html), zum Abgleich mit dessen gespeichertem Fortschritt.
+  var CHECKPOINTS = [
+    new Date('2026-09-19T11:50:38.400000'),
+    new Date('2026-09-19T14:54:07.200000'),
+    new Date('2026-09-19T16:37:17.760000'),
+    new Date('2026-09-19T18:46:56.640000'),
+    new Date('2026-09-19T20:28:16.320000')
+  ];
+
+  syncBtn.addEventListener('click', function() {
+    var dashRaw;
+    try { dashRaw = localStorage.getItem('brm200_dashboard_v1'); }
+    catch (e) { syncStatus.textContent = 'kein Zugriff'; syncStatus.style.color = ''; return; }
+
+    var dashArr = null;
+    if (dashRaw) {
+      try {
+        var dash = JSON.parse(dashRaw);
+        if (Array.isArray(dash.arr)) dashArr = dash.arr;
+      } catch (e) { /* faellt unten auf Basisplan zurueck */ }
+    }
+
+    var lastIdx = -1;
+    if (dashArr) {
+      for (var i = dashArr.length - 1; i >= 0; i--) { if (dashArr[i]) { lastIdx = i; break; } }
+    }
+
+    if (lastIdx === -1) {
+      deviationMs = 0;
+      saveState();
+      applyDeviation();
+      setSyncStatus(0);
+      return;
+    }
+
+    var actual = new Date(dashArr[lastIdx]);
+    var plannedCp = CHECKPOINTS[lastIdx];
+    deviationMs = actual.getTime() - plannedCp.getTime();
+    saveState();
+    applyDeviation();
+    setSyncStatus(deviationMs);
+  });
+
+  function buildExportText() {
+    var lines = ['Fueling BRM 200 Schönbuch — Stand ' + new Date().toLocaleString('de-DE')];
+    lines.push('');
+    rows.forEach(function(rowEl) {
+      var box = rowEl.querySelector('.row-check');
+      var km = rowEl.querySelector('.row-km').textContent;
+      var label = rowEl.querySelector('[data-label-el]').textContent;
+      var mark = box.checked ? '[x]' : '[ ]';
+      lines.push(mark + ' ' + km + ' — ' + label);
+    });
+    return lines.join('\n');
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', function() {
+    var text = buildExportText();
+    var box = document.getElementById('exportBox');
+    var ta = document.getElementById('exportText');
+    var hint = document.getElementById('exportHint');
+    ta.value = text; box.hidden = false; ta.focus(); ta.select();
+    var copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() { copied = true; hint.textContent = 'Automatisch kopiert ✓ — alternativ Text unten manuell markieren.'; });
+      }
+    } catch (e) {}
+    try { if (!copied) document.execCommand('copy'); } catch (e) {}
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function() {
+    if (!window.confirm('Wirklich alle Häkchen und den Zeitabgleich zurücksetzen?')) return;
+    checked = new Array(TOTAL).fill(false);
+    deviationMs = 0;
+    saveState();
+    rows.forEach(function(rowEl) {
+      var box = rowEl.querySelector('.row-check');
+      var idx = parseInt(box.getAttribute('data-cidx'), 10);
+      box.checked = !!checked[idx];
+    });
+    applyDeviation();
+    syncStatus.textContent = 'Zurückgesetzt auf Basisplan.';
+    syncStatus.style.color = '';
+    document.getElementById('exportBox').hidden = true;
+  });
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function () { /* non-fatal */ });
+  });
+}
+</script>
+
+</body>
+</html>
