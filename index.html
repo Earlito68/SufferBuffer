@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="BRM200" />
+<link rel="apple-touch-icon" href="icon.png">
+<title>BRM 200 Schönbuch</title>
+<style>
+
+  :root {
+    --bg: #090c10; --surface: #10151c; --surface-2: #171e27; --surface-3: #1e2733;
+    --border: #2a3542; --border-strong: #3d4b5c;
+    --text: #ffffff; --text-dim: #93a1af; --text-faint: #5c6b7a;
+    --amber: #f5a623; --teal: #4fe3d4; --red: #e5484d; --white-a: #d7dee6; --blue: #4c86f5; --green: #3ecf8e;
+    --mauve: #c98aa6; --darkred: #7a1f1f;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background: var(--bg); color: var(--text); margin: 0; min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: -0.01em; }
+  .stat-red { color: var(--red); } .stat-green { color: var(--green); } .stat-darkred { color: var(--darkred); } .stat-amber { color: var(--amber); }
+
+  .topbar { position: sticky; top: 0; z-index: 20; background: rgba(9,12,16,0.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding-top: env(safe-area-inset-top); }
+  .topbar-inner { padding: 14px 18px; }
+  h1 { font-family: -apple-system, sans-serif; font-size: 19px; font-weight: 700; margin: 0; color: var(--text); }
+  .route { font-size: 11.5px; color: var(--text-dim); display: block; margin-top: 2px; }
+  .nav-link { font-size: 11.5px; color: var(--amber); display: block; margin-top: 6px; text-decoration: none; font-weight: 600; }
+
+  .main { padding: 18px; display: flex; flex-direction: column; gap: 16px; max-width: 720px; margin: 0 auto; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .panel-head h2 { font-family: -apple-system, sans-serif; font-size: 15px; margin: 0; }
+  .panel-sub { font-size: 12px; color: var(--text); display: flex; gap: 10px; flex-wrap: wrap; }
+  .panel-sub span { display: inline-flex; align-items: center; gap: 4px; }
+
+  svg { display: block; width: 100%; height: auto; }
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 8px; font-size: 11px; color: var(--text-dim); }
+  .chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+  /* ---- Ledger ---- */
+  .ledger { display: flex; flex-direction: column; gap: 12px; }
+  .cp-row { padding: 10px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface-2); overflow: hidden; }
+  .cp-heading {
+    font-family: -apple-system, sans-serif; font-size: 14px; font-weight: 600; color: var(--text);
+    padding: 8px 10px; border-radius: 8px; margin: -10px -10px 10px; background: var(--surface-3);
+  }
+  .cp-heading .stg { opacity: 0.7; font-weight: 500; margin-right: 4px; }
+  .cp-heading .km2 { opacity: 0.7; font-weight: 500; margin-left: 5px; font-size: 12.5px; }
+  .cp-heading-jump { display: flex; align-items: center; cursor: pointer; }
+  .cp-heading-jump:active { filter: brightness(1.25); }
+  .jump-arrow { margin-left: auto; opacity: 0.6; font-size: 18px; font-weight: 700; }
+  .cp-row.control .cp-heading { background: rgba(255,255,255,0.05); }
+  .cp-row.bag-red .cp-heading { background: rgba(229,72,77,0.16); }
+  .cp-row.bag-white .cp-heading { background: rgba(215,222,230,0.14); }
+  .cp-row.bag-blue .cp-heading { background: rgba(76,134,245,0.16); }
+  .cp-row.finish .cp-heading { background: rgba(245,166,35,0.18); }
+  .cp-row.control { border-left: 3px solid var(--border-strong); }
+  .cp-row.bag-red { border-left: 4px solid var(--red); }
+  .cp-row.bag-white { border-left: 4px solid var(--white-a); }
+  .cp-row.bag-blue { border-left: 4px solid var(--blue); }
+  .cp-row.finish { border-left: 4px solid var(--amber); }
+  .cp-checks { display: flex; align-items: center; gap: 22px; padding: 2px 2px 4px; }
+  .cp-check { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 60px; padding: 6px 10px; margin: -6px -10px; border-radius: 8px; }
+  .cp-check:active { background: var(--surface-3); }
+  .cp-check input { width: 24px; height: 24px; accent-color: var(--amber); }
+  .cp-check .lbl2 { font-size: 10.5px; color: var(--text); text-transform: uppercase; }
+  .cp-time-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; padding-left: 2px; }
+  .cp-time-line .cp-time-label { font-size: 11px; color: var(--text-dim); }
+  .cp-arrival-row { margin-top: 6px; width: 100%; display: flex; gap: 8px; align-items: stretch; }
+  .cp-arrival-row input[type="datetime-local"] {
+    color-scheme: dark; font-family: ui-monospace, 'SF Mono', Menlo, monospace; background: #35414f;
+    border: 1px solid #4a5768; color: var(--text); border-radius: 6px; padding: 7px 10px; font-size: 14px;
+    flex: 1; min-width: 0; box-sizing: border-box; display: block;
+  }
+  .cp-arrival-row input:focus { border-color: var(--amber); }
+  .now-btn {
+    flex-shrink: 0; min-width: 60px; min-height: 60px; padding: 0 14px; font-size: 12px; font-weight: 700;
+    background: var(--surface-3); border: 1px solid var(--border-strong); color: var(--amber); border-radius: 8px; cursor: pointer;
+  }
+  .now-btn:active { background: var(--border-strong); }
+  .delta-chip { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 6px; background: var(--surface); white-space: nowrap; flex-shrink: 0; }
+
+  .cp-buffer-bar { height: 8px; margin-top: 6px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 4px; overflow: hidden; }
+  .cp-buffer-fill { height: 100%; border-radius: 3px 0 0 3px; }
+
+  .cp-summary { margin-top: 4px; padding: 10px 8px 2px; border-top: 2px solid var(--border-strong); display: flex; flex-direction: column; gap: 5px; }
+  .cp-summary div { font-size: 12.5px; color: var(--text); display: flex; justify-content: space-between; }
+  .cp-summary .k { color: var(--text-dim); }
+
+  /* ---- Stops ---- */
+  .stop-card { background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .stop-card:last-child { margin-bottom: 0; }
+  .stop-red { border-left-color: var(--red); } .stop-white { border-left-color: var(--white-a); } .stop-blue { border-left-color: var(--blue); }
+  .stop-collapsed-row { display: none; align-items: center; gap: 10px; cursor: pointer; padding: 2px; }
+  .stop-collapsed-row.show { display: flex; }
+  .stop-collapse-btn { background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-dim); width: 60px; height: 60px; border-radius: 10px; font-size: 20px; line-height: 1; cursor: pointer; flex-shrink: 0; }
+  .stop-collapse-btn:active { background: var(--surface-3); }
+  .stop-expanded { display: flex; flex-direction: column; gap: 9px; }
+  .stop-expanded.hide { display: none; }
+
+  .stop-head { display: flex; align-items: center; gap: 8px; }
+  .stop-emoji { font-size: 18px; }
+  .stop-title { flex: 1; }
+  .stop-title h3 { font-family: -apple-system, sans-serif; font-size: 15px; margin: 0; }
+  .stop-km { font-size: 10.5px; color: var(--text-faint); }
+  .stop-tagline { font-size: 11px; color: var(--amber); font-style: italic; margin: 2px 0 0; }
+
+  .stop-times { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+  .stop-times > div { display: flex; flex-direction: column; gap: 2px; }
+  .lbl { font-size: 9px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stop-times .mono { font-size: 11px; }
+  .stop-times .prog-val { font-size: 16px; font-weight: 700; }
+  .wecker-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .wecker-row > div { display: flex; flex-direction: column; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 8px; }
+  .wecker-row .mono { font-size: 13px; font-weight: 600; }
+
+  .stop-strategy, .stop-terrain { display: flex; gap: 6px; font-size: 11.5px; color: var(--text-dim); margin: 0; line-height: 1.45; }
+  .stop-note { display: flex; gap: 6px; font-size: 11px; line-height: 1.45; margin: 0; background: rgba(229,72,77,0.08); border: 1px solid rgba(229,72,77,0.25); border-radius: 8px; padding: 8px 9px; color: #ffb3b5; }
+
+  .checklist-progress { font-size: 11px; color: var(--text-faint); margin-bottom: 2px; }
+  .checklist { display: flex; flex-direction: column; }
+  .check-item { display: flex; align-items: center; gap: 14px; padding: 18px 10px; cursor: pointer; border-bottom: 1px solid var(--border); min-height: 60px; box-sizing: border-box; }
+  .check-item:last-child { border-bottom: none; }
+  .check-item:active { background: var(--surface-3); }
+  .check-item input { width: 22px; height: 22px; accent-color: var(--amber); flex-shrink: 0; }
+  .check-item .ci-icon { font-size: 14px; flex-shrink: 0; width: 18px; text-align: center; }
+  .check-item span.txt { font-size: 12.5px; color: var(--text-dim); }
+  .check-item input:checked ~ .ci-icon { opacity: 0.4; }
+  .check-item input:checked ~ span.txt { color: var(--text-faint); text-decoration: line-through; }
+
+  .time-block { border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .time-headline { display: flex; justify-content: space-between; align-items: baseline; }
+  .time-headline .k { font-size: 11.5px; color: var(--text-dim); }
+  .time-headline .v { font-size: 20px; font-weight: 700; font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
+  .time-row { display: flex; justify-content: space-between; font-size: 11.5px; }
+  .time-row .k { color: var(--text-faint); }
+  .time-row .v { font-family: ui-monospace, 'SF Mono', Menlo, monospace; color: var(--text-dim); }
+
+  .valensole-options { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .vo-opt .vo-head { font-size: 11px; color: var(--text-dim); margin-bottom: 3px; }
+  .vo-opt .vo-detail { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; }
+  .vo-opt .vo-detail .mono { font-weight: 600; }
+  .recommend { font-size: 11.5px; font-weight: 600; margin: 0; }
+
+  .foot { text-align: center; padding: 16px 16px 28px; font-size: 10.5px; color: var(--text-faint); }
+
+  .footer-actions { display: flex; gap: 10px; padding: 4px 18px 0; max-width: 720px; margin: 0 auto; }
+  .footer-btn {
+    flex: 1; min-height: 60px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--border-strong); color: var(--text);
+  }
+  .footer-btn:active { background: var(--surface-3); }
+  .footer-btn.danger { color: var(--red); border-color: rgba(229,72,77,0.4); }
+  .export-box { max-width: 720px; margin: 10px auto 0; padding: 0 18px; }
+  .export-hint { font-size: 11px; color: var(--text-dim); margin: 0 0 6px; }
+  .export-box textarea {
+    width: 100%; height: 140px; box-sizing: border-box; background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: 8px; padding: 10px; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 11px; line-height: 1.5; resize: vertical;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <h1>SufferBuffer<sup>©</sup> for BRM 200 Schönbuch</h1>
+    <span class="route">Stuttgart Rohr → Öschelbronn → Stuttgart Rohr · 208.8 km · Start Sa 19.09. 08:00</span>
+    <a href="./fueling.html" class="nav-link">🧴 Fueling-Liste öffnen →</a>
+  </div>
+</header>
+
+<main class="main">
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Höhenprofil</h2>
+      <span class="panel-sub">208.8 km · 4 Kontrollen · +2597 / −2595 Hm</span>
+    </div>
+    <svg id="elevChart" viewBox="0 0 1000 345" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="greenFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3ecf8e" stop-opacity="0.5" />
+          <stop offset="100%" stop-color="#3ecf8e" stop-opacity="0.05" />
+        </linearGradient>
+        <linearGradient id="mauveFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#c98aa6" stop-opacity="0.4" />
+          <stop offset="100%" stop-color="#c98aa6" stop-opacity="0.05" />
+        </linearGradient>
+      </defs>
+      <path id="areaMauve" />
+      <path id="areaGreen" />
+      <polyline id="elevLine" fill="none" stroke="#4fe3d4" stroke-width="2" stroke-linejoin="round" />
+      <line id="posLine" x1="0" y1="55" x2="0" y2="287" stroke="#eaeff4" stroke-width="1.5" stroke-dasharray="3 3" style="display:none;" />
+      <g id="cpDots"></g>
+      <g id="axisLabels" class="mono" font-size="26" fill="#eaeff4" font-weight="600"></g>
+    </svg>
+    <div class="chart-legend">
+      <span><i class="dot" style="background:#3ecf8e;margin-right:2px;"></i> Kontrollpunkte (gefahren/offen)</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Streckenkontrolle</h2>
+      <span class="panel-sub"><span>📷 Foto</span><span>✅ Done</span><span>🕒 Ankunft</span></span>
+    </div>
+    <div class="ledger" id="ledger"></div>
+  </section>
+</main>
+
+<div class="footer-actions">
+  <button type="button" id="exportBtn" class="footer-btn">Fortschritt kopieren</button>
+  <button type="button" id="resetBtn" class="footer-btn danger">Hard Reset</button>
+</div>
+<div id="exportBox" class="export-box" style="display:none;">
+  <p class="export-hint" id="exportHint">Text unten antippen, alles markieren, kopieren.</p>
+  <textarea id="exportText" readonly></textarea>
+</div>
+
+<footer class="foot">
+  Basierend auf RideWithGPS-Route &amp; Pacing-Timesheet · Stand 18.09.2026<br>
+  100% offline-fähig — keine Internetverbindung erforderlich.
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ================= STORAGE (bulletproof: never throws) ================= */
+  var STORE_KEY = "brm200_dashboard_v1";
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  function saveState() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore, in-memory only */ }
+  }
+
+  var saved = loadState();
+  var state = {
+    reachedIndex: typeof saved.reachedIndex === "number" ? saved.reachedIndex : -1,
+    foto: Array.isArray(saved.foto) && saved.foto.length === 5 ? saved.foto : new Array(5).fill(false),
+    arr: Array.isArray(saved.arr) && saved.arr.length === 5 ? saved.arr : new Array(5).fill(null) // datetime-local strings, actual arrival
+  };
+
+  /* ================= DATA ================= */
+  var raw = [[0.0,504],[2.06,515],[4.05,486],[6.0,512],[8.03,491],[10.01,434],[12.01,421],[14.04,447],[16.01,483],[18.01,462],[20.03,483],[22.03,537],[24.02,454],[26.02,464],[28.34,486],[30.0,499],[32.02,526],[34.02,555],[36.01,460],[38.0,430],[40.0,372],[42.03,396],[44.0,494],[46.02,553],[48.01,599],[50.16,625],[52.0,633],[54.11,675],[56.03,703],[58.03,730],[60.05,748],[62.0,776],[64.05,748],[66.11,657],[68.06,754],[70.02,776],[72.03,805],[74.06,812],[76.02,799],[78.0,669],[80.06,494],[82.01,483],[84.01,465],[86.01,478],[88.12,523],[90.01,564],[92.02,628],[94.02,676],[96.06,751],[98.04,882],[100.04,1025],[102.02,1155],[104.16,1055],[106.0,955],[108.02,916],[110.13,873],[112.02,871],[114.0,801],[116.03,711],[118.03,622],[120.01,588],[122.03,568],[124.01,569],[126.05,545],[128.06,561],[130.01,587],[132.04,625],[134.02,681],[136.06,737],[138.05,655],[140.04,631],[142.02,578],[144.01,516],[146.04,593],[148.01,654],[150.03,585],[152.07,622],[154.08,612],[156.0,570],[158.01,548],[160.12,577],[162.05,575],[164.08,566],[166.02,547],[168.01,543],[170.01,515],[172.07,523],[174.12,481],[176.04,483],[178.01,462],[180.25,393],[182.04,400],[184.07,431],[186.05,447],[188.02,456],[190.01,462],[192.09,451],[194.06,437],[196.05,459],[198.02,452],[200.0,442],[202.02,465],[204.1,481],[206.0,499],[208.01,512],[208.86,506]];
+
+  var landmarks = [
+    { i: 0,   ledgerRow: null },
+    { i: 32,  ledgerRow: 0 },
+    { i: 51,  ledgerRow: 1 },
+    { i: 68,  ledgerRow: 2 },
+    { i: 87,  ledgerRow: 3 },
+    { i: 105, ledgerRow: 4 }
+  ];
+
+  // plannedISO/closingISO: local datetime strings (no timezone — matches datetime-local input semantics,
+  // correct as long as the device's own clock is in the race's local timezone, which it will be).
+  var ledgerData = [
+    { stg:'CP1', name:'Simmersfeld Bäckerei',      km:63.1,  plannedISO:'2026-09-19T11:50', closingISO:'2026-09-19T12:04', planLabel:'Sa 11:50', closeLabel:'Sa 12:04', type:'control', stopId:null },
+    { stg:'CP2', name:'Hornisgrinde Gipfel',       km:102.5, plannedISO:'2026-09-19T14:54', closingISO:'2026-09-19T14:37', planLabel:'Sa 14:54', closeLabel:'Sa 14:37', type:'control', stopId:null },
+    { stg:'CP3', name:'Freudenstadt Marktplatz',   km:135.2, plannedISO:'2026-09-19T16:37', closingISO:'2026-09-19T16:44', planLabel:'Sa 16:37', closeLabel:'Sa 16:44', type:'control', stopId:null },
+    { stg:'CP4', name:'Öschelbronn Radrennbahn',   km:174.7, plannedISO:'2026-09-19T18:46', closingISO:'2026-09-19T19:17', planLabel:'Sa 18:46', closeLabel:'Sa 19:17', type:'control', stopId:null },
+    { stg:'FIN', name:'Stuttgart Rohr',            km:208.8, plannedISO:'2026-09-19T20:28', closingISO:'2026-09-19T21:29', planLabel:'Sa 20:28', closeLabel:'Sa 21:29', type:'finish',  stopId:null }
+  ];
+  ledgerData.forEach(function (d) { d.planned = new Date(d.plannedISO); d.closing = new Date(d.closingISO); });
+
+  /* ================= HELPERS ================= */
+  var DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  function fmtClock(d) {
+    if (!d) return '—';
+    return DAYS[d.getDay()] + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+  function fmtSignedH(hours) {
+    if (hours === null || hours === undefined || isNaN(hours)) return '—';
+    var sign = hours < 0 ? '-' : '+';
+    var abs = Math.abs(hours);
+    var hh = Math.floor(abs);
+    var mm = Math.floor((abs - hh) * 60 + 1e-6);
+    return sign + hh + ':' + String(mm).padStart(2, '0');
+  }
+  function deltaHours(a, b) { return (a.getTime() - b.getTime()) / 3600000; }
+
+  function actualFor(idx) {
+    var v = state.arr[idx];
+    return v ? new Date(v) : null;
+  }
+
+  // actual entry if present, else projected forward from the nearest prior entry,
+  // carrying that entry's deviation-from-plan onto this row's own planned time
+  function projectedArrivalFor(idx) {
+    var a = actualFor(idx);
+    if (a) return a;
+    for (var j = idx - 1; j >= 0; j--) {
+      var aj = actualFor(j);
+      if (aj) {
+        var deviationMs = aj.getTime() - ledgerData[j].planned.getTime();
+        return new Date(ledgerData[idx].planned.getTime() + deviationMs);
+      }
+    }
+    return null;
+  }
+
+  function deltaPlanFor(idx) {
+    var p = projectedArrivalFor(idx);
+    return p ? deltaHours(ledgerData[idx].planned, p) : null; // positive = ahead of plan
+  }
+  function deltaMinFor(idx) {
+    var p = projectedArrivalFor(idx);
+    return p ? deltaHours(ledgerData[idx].closing, p) : null; // positive = still within minimum
+  }
+
+  /* ================= ELEVATION CHART ================= */
+  var W = 1000, H = 345, PAD_T = 55, PAD_B = 58, SOCKEL = 10;
+  var maxKm = 212, maxEle = 1300;
+  function X(km) { return (km / maxKm) * W; }
+  function Y(ele) { return PAD_T + (1 - ele / maxEle) * (H - PAD_T - PAD_B); }
+  var baseY = H - PAD_B + SOCKEL;
+
+  var pts = raw.map(function (p) { return X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1); }).join(' ');
+  document.getElementById('elevLine').setAttribute('points', pts);
+
+  function areaPath(kmFrom, kmTo) {
+    var p = raw.filter(function (r) { return r[0] >= kmFrom - 0.01 && r[0] <= kmTo + 0.01; });
+    if (p.length < 2) return '';
+    var d = 'M ' + X(p[0][0]).toFixed(1) + ' ' + baseY + ' L ';
+    d += p.map(function (r) { return X(r[0]).toFixed(1) + ' ' + Y(r[1]).toFixed(1); }).join(' L ');
+    d += ' L ' + X(p[p.length - 1][0]).toFixed(1) + ' ' + baseY + ' Z';
+    return d;
+  }
+
+  function renderChart() {
+    var reachedKm = state.reachedIndex >= 0 ? ledgerData[state.reachedIndex].km : 0;
+    document.getElementById('areaMauve').setAttribute('d', areaPath(0, 208.86));
+    document.getElementById('areaMauve').setAttribute('fill', 'url(#mauveFill)');
+    if (reachedKm > 0) {
+      document.getElementById('areaGreen').setAttribute('d', areaPath(0, reachedKm));
+      document.getElementById('areaGreen').setAttribute('fill', 'url(#greenFill)');
+    } else {
+      document.getElementById('areaGreen').setAttribute('d', '');
+    }
+    var posLine = document.getElementById('posLine');
+    if (reachedKm > 0) {
+      posLine.setAttribute('x1', X(reachedKm)); posLine.setAttribute('x2', X(reachedKm));
+      posLine.style.display = 'block';
+    } else { posLine.style.display = 'none'; }
+
+    var dotsG = document.getElementById('cpDots');
+    dotsG.innerHTML = '';
+    var axis = document.getElementById('axisLabels');
+    axis.innerHTML = '';
+    var axisLastX = -9999, axisLastRow = 0;
+    landmarks.forEach(function (lm) {
+      var pt = raw[lm.i];
+      var reached = lm.ledgerRow === null ? true : (lm.ledgerRow <= state.reachedIndex);
+      var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', X(pt[0])); c.setAttribute('cy', Y(pt[1])); c.setAttribute('r', '13.5');
+      c.setAttribute('fill', reached ? '#3ecf8e' : 'none');
+      c.setAttribute('stroke', reached ? '#090c10' : '#c98aa6');
+      c.setAttribute('stroke-width', reached ? '1.5' : '3.5');
+      dotsG.appendChild(c);
+
+      var lx = X(pt[0]);
+      var thisRow = 0;
+      if (lx - axisLastX < 70) { thisRow = axisLastRow === 0 ? 1 : 0; }
+      axisLastX = lx; axisLastRow = thisRow;
+      var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', lx); t.setAttribute('y', thisRow === 0 ? (H - 32) : (H - 8));
+      t.setAttribute('text-anchor', lx < 30 ? 'start' : (lx > 970 ? 'end' : 'middle'));
+      t.textContent = Math.round(pt[0]);
+      axis.appendChild(t);
+    });
+  }
+
+  /* ================= LEDGER ================= */
+  var ledgerEl = document.getElementById('ledger');
+
+  function buildLedgerRow(idx) {
+    var d = ledgerData[idx];
+    var row = document.createElement('div');
+    row.className = 'cp-row ' + d.type;
+    row.setAttribute('data-idx', idx);
+    row.innerHTML =
+      '<div class="cp-heading">' +
+        '<span class="stg mono">' + d.stg + '</span>' + d.name + '<span class="km2 mono">km ' + d.km + '</span>' +
+      '</div>' +
+      '<div class="cp-checks">' +
+        '<label class="cp-check"><input type="checkbox" class="foto-check" data-idx="' + idx + '"><span class="lbl2">Foto</span></label>' +
+        '<label class="cp-check"><input type="checkbox" class="done-check" data-idx="' + idx + '"><span class="lbl2">Done</span></label>' +
+      '</div>' +
+      '<div class="cp-time-line"><span class="cp-time-label mono">Plan ' + d.planLabel + '</span>' +
+        '<span class="delta-chip mono" id="chip-plan-' + idx + '"></span></div>' +
+      '<div class="cp-arrival-row">' +
+        '<input type="datetime-local" step="60" class="arr-input" data-idx="' + idx + '">' +
+        '<button type="button" class="now-btn" data-idx="' + idx + '">JETZT</button>' +
+      '</div>' +
+      '<div class="cp-time-line"><span class="cp-time-label mono">Min ' + d.closeLabel + '</span>' +
+        '<span class="delta-chip mono" id="chip-min-' + idx + '"></span></div>' +
+      '<div class="cp-buffer-bar"><div class="cp-buffer-fill" id="bar-' + idx + '"></div></div>';
+    return row;
+  }
+
+  function renderLedger() {
+    ledgerEl.innerHTML = '';
+    for (var i = 0; i < ledgerData.length; i++) ledgerEl.appendChild(buildLedgerRow(i));
+
+    var summary = document.createElement('div');
+    summary.className = 'cp-summary';
+    summary.innerHTML =
+      '<div><span class="k">Prognostizierte Ankunft</span><span class="mono" id="final-forecast"></span></div>' +
+      '<div><span class="k">Geplante Ankunft</span><span class="mono">Sa 20:28</span></div>' +
+      '<div><span class="k">Minimale Ankunft</span><span class="mono">Sa 21:29</span></div>';
+    ledgerEl.appendChild(summary);
+
+    ledgerEl.querySelectorAll('.foto-check').forEach(function (cb) {
+      var idx = parseInt(cb.getAttribute('data-idx'));
+      cb.checked = !!state.foto[idx];
+      cb.addEventListener('change', function () { state.foto[idx] = cb.checked; saveState(); });
+    });
+
+    ledgerEl.querySelectorAll('.done-check').forEach(function (cb) {
+      var idx = parseInt(cb.getAttribute('data-idx'));
+      cb.checked = idx <= state.reachedIndex;
+      cb.addEventListener('change', function () {
+        state.reachedIndex = cb.checked ? idx : idx - 1;
+        saveState();
+        renderLedger();
+        renderChart();
+      });
+    });
+
+    ledgerEl.querySelectorAll('.arr-input').forEach(function (inp) {
+      var idx = parseInt(inp.getAttribute('data-idx'));
+      inp.value = state.arr[idx] || '';
+      inp.addEventListener('input', function () {
+        state.arr[idx] = inp.value || null;
+        saveState();
+        updateDeltaChips();
+      });
+    });
+
+    ledgerEl.querySelectorAll('.now-btn').forEach(function (btn) {
+      var idx = parseInt(btn.getAttribute('data-idx'));
+      btn.addEventListener('click', function () {
+        var iso = nowLocalISO();
+        state.arr[idx] = iso;
+        var inp = ledgerEl.querySelector('.arr-input[data-idx="' + idx + '"]');
+        if (inp) inp.value = iso;
+        saveState();
+        updateDeltaChips();
+      });
+    });
+
+    updateDeltaChips();
+  }
+
+  function nowLocalISO() {
+    var d = new Date();
+    var p = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function bufferBarColor(h) {
+    if (h === null) return 'var(--border-strong)';
+    if (h > 4) return '#3ecf8e';
+    if (h >= 2) return '#f2d024';
+    if (h >= 1) return '#f5a623';
+    return '#e5484d';
+  }
+  function bufferBarPct(h) {
+    if (h === null) return 0;
+    return Math.max(0, Math.min(1, h / 6)) * 100;
+  }
+
+  function updateDeltaChips() {
+    for (var i = 0; i < ledgerData.length; i++) {
+      var dp = deltaPlanFor(i), dm = deltaMinFor(i);
+      var cp = document.getElementById('chip-plan-' + i), cm = document.getElementById('chip-min-' + i);
+      if (cp) {
+        cp.textContent = 'Plan ' + fmtSignedH(dp);
+        cp.className = 'delta-chip mono ' + (dp === null ? '' : (dp >= 0 ? 'stat-green' : 'stat-red'));
+      }
+      if (cm) {
+        cm.textContent = 'Min ' + fmtSignedH(dm);
+        cm.className = 'delta-chip mono ' + (dm === null ? '' : (dm >= 0 ? 'stat-green' : 'stat-darkred'));
+      }
+      var bar = document.getElementById('bar-' + i);
+      if (bar) {
+        bar.style.width = bufferBarPct(dm) + '%';
+        bar.style.background = bufferBarColor(dm);
+      }
+    }
+    var fc = document.getElementById('final-forecast');
+    if (fc) {
+      var p = projectedArrivalFor(4);
+      fc.textContent = fmtClock(p);
+      var dm8 = deltaMinFor(4);
+      fc.className = 'mono ' + (dm8 === null ? '' : (dm8 >= 0 ? 'stat-green' : 'stat-darkred'));
+    }
+  }
+
+  function syncLedgerArrInput(idx) {
+    var el = ledgerEl.querySelector('.arr-input[data-idx="' + idx + '"]');
+    if (el) el.value = state.arr[idx] || '';
+  }
+
+  /* ================= EXPORT / RESET ================= */
+  function buildExportText() {
+    var lines = [];
+    lines.push('SufferBuffer\u00A9 \u2014 Stand ' + fmtClock(new Date()));
+    lines.push('Erreicht: ' + (state.reachedIndex >= 0 ? ledgerData[state.reachedIndex].name + ' (km ' + ledgerData[state.reachedIndex].km + ')' : 'Start (km 0)'));
+    lines.push('');
+    for (var i = 0; i < ledgerData.length; i++) {
+      var d = ledgerData[i];
+      var arrRaw = state.arr[i] ? state.arr[i].replace('T', ' ') : '\u2014';
+      var dp = deltaPlanFor(i), dm = deltaMinFor(i);
+      lines.push(d.stg + ' ' + d.name + ' (km' + d.km + '): Ankunft ' + arrRaw + ' | \u0394Plan ' + fmtSignedH(dp) + ' | \u0394Min ' + fmtSignedH(dm));
+    }
+    return lines.join('\n');
+  }
+
+  var exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function () {
+      var text = buildExportText();
+      var box = document.getElementById('exportBox');
+      var ta = document.getElementById('exportText');
+      var hint = document.getElementById('exportHint');
+      ta.value = text;
+      box.style.display = 'block';
+      ta.focus();
+      ta.select();
+      var copied = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () { copied = true; hint.textContent = 'Automatisch kopiert \u2713 \u2014 alternativ Text unten manuell markieren.'; });
+        }
+      } catch (e) { /* fall through to manual selection below */ }
+      try {
+        if (!copied) document.execCommand('copy');
+      } catch (e) { /* manual selection remains the guaranteed fallback */ }
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+
+  var resetBtn = document.getElementById('resetBtn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      if (!window.confirm('Wirklich ALLE Daten l\u00f6schen und auf km 0 zur\u00fccksetzen? Das kann nicht r\u00fcckg\u00e4ngig gemacht werden.')) return;
+      state.reachedIndex = -1;
+      state.foto = new Array(5).fill(false);
+      state.arr = new Array(5).fill(null);
+      saveState();
+      renderChart();
+      renderLedger();
+      document.getElementById('exportBox').style.display = 'none';
+    });
+  }
+
+  /* ================= INIT ================= */
+  renderChart();
+  renderLedger();
+
+  try {
+    var target = ledgerEl.querySelector('.cp-row[data-idx="' + (state.reachedIndex + 1) + '"]');
+    if (target && state.reachedIndex < ledgerData.length - 1) {
+      setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300);
+    }
+  } catch (e) { /* non-fatal */ }
+})();
+
+// Offline caching via Service Worker — only relevant when hosted (http/https).
+// Silently no-ops when opened as a local file or when the browser blocks it;
+// the app itself never depends on this succeeding.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function () { /* non-fatal */ });
+  });
+}
+</script>
+
+</body>
+</html>
