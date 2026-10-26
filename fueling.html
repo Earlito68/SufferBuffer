@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Fueling" />
+<link rel="apple-touch-icon" href="icon.png">
+<title>Fueling-Strategie — BRM 600 Schönbuch</title>
+<style>
+  :root {
+    --bg:#090c10; --surface:#10151c; --surface-2:#171e27;
+    --border:#2a3542; --border-strong:#3d4b5c;
+    --text:#ffffff; --text-dim:#93a1af; --text-faint:#5c6b7a;
+    --amber:#f5a623; --red:#e5484d; --green:#3ecf8e;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  body { background:var(--bg); color:var(--text); font-family:-apple-system,sans-serif; margin:0; padding:16px; padding-bottom: env(safe-area-inset-bottom); }
+  h1 { font-size:19px; margin:0 0 4px; }
+  .sub { color:var(--text-dim); font-size:12.5px; margin-bottom:16px; }
+  .nav-link { font-size: 12px; color: var(--amber); display: block; margin: 4px 0 8px; text-decoration: none; font-weight: 600; }
+
+  .sync-box { background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; padding:12px; margin-bottom:16px; }
+  .sync-row { display:flex; gap:10px; align-items:center; }
+  .sync-btn { min-height:44px; min-width:90px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; background:var(--amber); border:none; color:#1a1200; }
+  .sync-btn:active { filter:brightness(0.9); }
+  .sync-status { font-size:12px; color:var(--text-dim); flex:1; line-height:1.4; }
+  .sync-status b { color:var(--text); }
+
+  .legend { display:flex; flex-wrap:wrap; gap:12px; font-size:11.5px; color:var(--text-dim); background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; padding:10px 12px; margin-bottom:18px; }
+  .legend span { display:inline-flex; align-items:center; gap:5px; }
+
+  .row { display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--border); border-radius:10px; margin-bottom:6px; background:var(--surface-2); }
+  .row-closed { opacity:0.6; border-color:rgba(229,72,77,0.35); }
+  .row-check { width:17px; height:17px; accent-color:var(--amber); flex-shrink:0; margin-top:2px; cursor:pointer; }
+  .row-icon { font-size:17px; flex-shrink:0; width:22px; text-align:center; }
+  .row-main { flex:1; min-width:0; }
+  .row-top { display:flex; justify-content:space-between; font-family:ui-monospace,monospace; font-size:12.5px; }
+  .row-km { font-weight:700; }
+  .row-time { color:var(--text-dim); }
+  .row-label { font-size:12.5px; color:var(--text-dim); margin-top:2px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .tag { font-size:9.5px; font-weight:700; padding:2px 6px; border-radius:5px; text-transform:uppercase; }
+  .tag-open { background:rgba(62,207,142,0.18); color:var(--green); }
+  .tag-closed { background:rgba(229,72,77,0.18); color:var(--red); }
+  .pet-note { font-size:11.5px; color:var(--amber); margin-top:4px; font-weight:600; }
+  .row:has(.row-check:checked) { opacity:0.5; }
+  .row:has(.row-check:checked) .row-label { text-decoration:line-through; }
+
+  .footer-actions { display:flex; gap:10px; margin-top:16px; }
+  .footer-btn { flex:1; min-height:48px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; background:var(--surface); border:1px solid var(--border-strong); color:var(--text); }
+  .footer-btn:active { background:var(--surface-2); }
+  .footer-btn.danger { color:var(--red); border-color:rgba(229,72,77,0.4); }
+  .export-box { margin-top:10px; display:none; }
+  .export-hint { font-size:11px; color:var(--text-dim); margin:0 0 6px; }
+  .export-box textarea { width:100%; height:140px; box-sizing:border-box; background:var(--surface); color:var(--text); border:1px solid var(--border-strong); border-radius:8px; padding:10px; font-family:ui-monospace,monospace; font-size:11px; line-height:1.5; }
+
+
+  .section-divider { text-align:center; font-size:10px; font-weight:700; letter-spacing:0.08em; color:var(--amber); padding:6px 0; margin:8px 0 10px; border-top:1px dashed var(--border-strong); border-bottom:1px dashed var(--border-strong); }
+
+  .foot { text-align:center; padding:20px 0 8px; font-size:10.5px; color:var(--text-faint); }
+</style>
+</head>
+<body>
+
+<h1>Fueling-Strategie — BRM 600 Schönbuch</h1>
+<a href="./index.html" class="nav-link">← Zurück zum Dashboard</a>
+<div class="sub">Malto-Refill im 3h-Rhythmus · o = Pflicht-Refill · Stopps aus Route 57686990 · Stand 25.10.2026</div>
+
+<div class="sync-box">
+  <div class="sync-row">
+    <button type="button" class="sync-btn" id="syncBtn">JETZT</button>
+    <div class="sync-status" id="syncStatus">±0:00h</div>
+  </div>
+</div>
+
+<div class="legend">
+  <span>💧 Wasser/Toilette</span>
+  <span>🛏️ Hotel (Schlaf + Malto)</span>
+  <span>🛒 Bäckerei/Supermarkt/Imbiss</span>
+  <span>⛽ Tankstelle</span>
+</div>
+
+
+    <div class="row " data-idx="0" data-planned="2026-11-01T09:59" data-hours="9-18">
+      <input type="checkbox" class="row-check" data-cidx="0">
+      <div class="row-icon">⛽</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 41.22</span><span class="row-time" data-time-el>So 09:59</span></div>
+        <div class="row-label"><span data-label-el>o GS L 9-18</span><span class="tag" data-status-el style="display:none;"></span></div>
+        <div class="pet-note">🍫 2 Riegel bis o GS L 10-20 — 3:46 h</div>
+      </div>
+    </div>
+    <div class="row " data-idx="1" data-planned="2026-11-01T10:20" data-hours="7-11">
+      <input type="checkbox" class="row-check" data-cidx="1">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 49.05</span><span class="row-time" data-time-el>So 10:20</span></div>
+        <div class="row-label"><span data-label-el>BKR L 7-11</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="2" data-planned="2026-11-01T10:49">
+      <input type="checkbox" class="row-check" data-cidx="2">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 59.55</span><span class="row-time" data-time-el>So 10:49</span></div>
+        <div class="row-label"><span data-label-el>WTR L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="3" data-planned="2026-11-01T12:31">
+      <input type="checkbox" class="row-check" data-cidx="3">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 96.32</span><span class="row-time" data-time-el>So 12:31</span></div>
+        <div class="row-label"><span data-label-el>WTR L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="4" data-planned="2026-11-01T13:45" data-hours="10-20">
+      <input type="checkbox" class="row-check" data-cidx="4">
+      <div class="row-icon">⛽</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 122.92</span><span class="row-time" data-time-el>So 13:45</span></div>
+        <div class="row-label"><span data-label-el>o GS L 10-20</span><span class="tag" data-status-el style="display:none;"></span></div>
+        <div class="pet-note">🍫 1 Riegel bis o GS R 8-22 — 3:13 h</div>
+      </div>
+    </div>
+    <div class="row " data-idx="5" data-planned="2026-11-01T15:01" data-hours="7-22">
+      <input type="checkbox" class="row-check" data-cidx="5">
+      <div class="row-icon">⛽</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 150.17</span><span class="row-time" data-time-el>So 15:01</span></div>
+        <div class="row-label"><span data-label-el>GS L 7-22</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="6" data-planned="2026-11-01T16:58" data-hours="8-22">
+      <input type="checkbox" class="row-check" data-cidx="6">
+      <div class="row-icon">⛽</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 180.91</span><span class="row-time" data-time-el>So 16:58</span></div>
+        <div class="row-label"><span data-label-el>o GS R 8-22</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="7" data-planned="2026-11-01T17:12">
+      <input type="checkbox" class="row-check" data-cidx="7">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 185.65</span><span class="row-time" data-time-el>So 17:12</span></div>
+        <div class="row-label"><span data-label-el>WTR L Umweg B-Strasse</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="8" data-planned="2026-11-01T18:24">
+      <input type="checkbox" class="row-check" data-cidx="8">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 211.01</span><span class="row-time" data-time-el>So 18:24</span></div>
+        <div class="row-label"><span data-label-el>WTR R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="9" data-planned="2026-11-01T18:29">
+      <input type="checkbox" class="row-check" data-cidx="9">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 212.47</span><span class="row-time" data-time-el>So 18:29</span></div>
+        <div class="row-label"><span data-label-el>o CP 02</span><span class="tag" data-status-el style="display:none;"></span></div>
+        <div class="pet-note">🍫 Riegel bei Bedarf bis o HOTEL SLEEP — 3:07 h</div>
+      </div>
+    </div>
+    <div class="row " data-idx="10" data-planned="2026-11-01T20:36">
+      <input type="checkbox" class="row-check" data-cidx="10">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 248.20</span><span class="row-time" data-time-el>So 20:36</span></div>
+        <div class="row-label"><span data-label-el>TLT L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="11" data-planned="2026-11-01T22:06" data-hours="0-24">
+      <input type="checkbox" class="row-check" data-cidx="11">
+      <div class="row-icon">⛽</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 281.16</span><span class="row-time" data-time-el>So 22:06</span></div>
+        <div class="row-label"><span data-label-el>CP 03</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="12" data-planned="2026-11-01T22:06" style="border-left:5px solid #f5a623; background:rgba(245,166,35,0.12);">
+      <input type="checkbox" class="row-check" data-cidx="12">
+      <div class="row-icon">🛏️</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 281.22</span><span class="row-time" data-time-el>So 22:06</span></div>
+        <div class="row-label"><span data-label-el>o HOTEL SLEEP</span><span class="tag" data-status-el style="display:none;"></span></div>
+        <div class="pet-note">🍫 3 Riegel bis o GS S 24h — 4:14 h</div>
+      </div>
+    </div>
+<div class="section-divider">NACH DEM SCHLAF</div>
+
+    <div class="row " data-idx="13" data-planned="2026-11-02T03:57">
+      <input type="checkbox" class="row-check" data-cidx="13">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 318.90</span><span class="row-time" data-time-el>Mo 03:57</span></div>
+        <div class="row-label"><span data-label-el>WTR R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="14" data-planned="2026-11-02T04:25">
+      <input type="checkbox" class="row-check" data-cidx="14">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 328.69</span><span class="row-time" data-time-el>Mo 04:25</span></div>
+        <div class="row-label"><span data-label-el>WTR R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="15" data-planned="2026-11-02T04:33">
+      <input type="checkbox" class="row-check" data-cidx="15">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 331.43</span><span class="row-time" data-time-el>Mo 04:33</span></div>
+        <div class="row-label"><span data-label-el>TLT L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="16" data-planned="2026-11-02T04:51">
+      <input type="checkbox" class="row-check" data-cidx="16">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 337.47</span><span class="row-time" data-time-el>Mo 04:51</span></div>
+        <div class="row-label"><span data-label-el>WTR R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="17" data-planned="2026-11-02T06:21" data-hours="0-24">
+      <input type="checkbox" class="row-check" data-cidx="17">
+      <div class="row-icon">⛽</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 368.12</span><span class="row-time" data-time-el>Mo 06:21</span></div>
+        <div class="row-label"><span data-label-el>o GS S 24h</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="18" data-planned="2026-11-02T07:42">
+      <input type="checkbox" class="row-check" data-cidx="18">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 395.81</span><span class="row-time" data-time-el>Mo 07:42</span></div>
+        <div class="row-label"><span data-label-el>WTR R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="19" data-planned="2026-11-02T08:34">
+      <input type="checkbox" class="row-check" data-cidx="19">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 403.60</span><span class="row-time" data-time-el>Mo 08:34</span></div>
+        <div class="row-label"><span data-label-el>TLT L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="20" data-planned="2026-11-02T08:37">
+      <input type="checkbox" class="row-check" data-cidx="20">
+      <div class="row-icon">⛽</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 404.60</span><span class="row-time" data-time-el>Mo 08:37</span></div>
+        <div class="row-label"><span data-label-el>o GS L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="21" data-planned="2026-11-02T10:32">
+      <input type="checkbox" class="row-check" data-cidx="21">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 444.96</span><span class="row-time" data-time-el>Mo 10:32</span></div>
+        <div class="row-label"><span data-label-el>WTR L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="22" data-planned="2026-11-02T11:14">
+      <input type="checkbox" class="row-check" data-cidx="22">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 459.64</span><span class="row-time" data-time-el>Mo 11:14</span></div>
+        <div class="row-label"><span data-label-el>o CP 05</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="23" data-planned="2026-11-02T13:35">
+      <input type="checkbox" class="row-check" data-cidx="23">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 498.21</span><span class="row-time" data-time-el>Mo 13:35</span></div>
+        <div class="row-label"><span data-label-el>TLT R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="24" data-planned="2026-11-02T14:34">
+      <input type="checkbox" class="row-check" data-cidx="24">
+      <div class="row-icon">🛒</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 518.61</span><span class="row-time" data-time-el>Mo 14:34</span></div>
+        <div class="row-label"><span data-label-el>o CP 06</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="25" data-planned="2026-11-02T16:45">
+      <input type="checkbox" class="row-check" data-cidx="25">
+      <div class="row-icon">⛽</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 551.95</span><span class="row-time" data-time-el>Mo 16:45</span></div>
+        <div class="row-label"><span data-label-el>o GS R</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+    <div class="row " data-idx="26" data-planned="2026-11-02T17:44">
+      <input type="checkbox" class="row-check" data-cidx="26">
+      <div class="row-icon">💧</div>
+      <div class="row-main">
+        <div class="row-top"><span class="row-km">km 571.47</span><span class="row-time" data-time-el>Mo 17:44</span></div>
+        <div class="row-label"><span data-label-el>WTR L</span><span class="tag" data-status-el style="display:none;"></span></div>
+        
+      </div>
+    </div>
+
+<div class="footer-actions">
+  <button type="button" id="exportBtn" class="footer-btn">Fortschritt kopieren</button>
+  <button type="button" id="resetBtn" class="footer-btn danger">Reset</button>
+</div>
+<div id="exportBox" class="export-box">
+  <p class="export-hint" id="exportHint">Text unten antippen, alles markieren, kopieren.</p>
+  <textarea id="exportText" readonly></textarea>
+</div>
+
+<div class="foot">
+  Vier Intervalle über 3h (km 41.2, km 122.9, km 212.5, Hotel) — dort überbrücken Riegel die Lücke.<br>
+  Uhrzeiten sind Prognosen aus dem Timesheet · JETZT-Abgleich liest die zuletzt im Dashboard gespeicherte Ankunftszeit, sofern beide Seiten von derselben Adresse geladen wurden.
+</div>
+
+<script>
+(function() {
+  "use strict";
+  var STORE_KEY = "brm600_schoenbuch_fueling_v1";
+  var TOTAL = 27;
+  var DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+  // Dashboard-Kontrollpunkte (Plan-Ankunftszeiten), zum Abgleich mit dessen gespeichertem Fortschritt.
+  var checkpoints = [
+    { km: 150.3, planned: new Date('2026-11-01T15:01') },
+    { km: 212.5, planned: new Date('2026-11-01T18:29') },
+    { km: 281.2, planned: new Date('2026-11-01T22:06') },
+    { km: 403.4, planned: new Date('2026-11-02T08:04') },
+    { km: 459.6, planned: new Date('2026-11-02T11:14') },
+    { km: 518.6, planned: new Date('2026-11-02T14:34') },
+    { km: 606.6, planned: new Date('2026-11-02T19:31') }
+  ];
+
+  function loadState() {
+    try { var raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : {}; }
+    catch (e) { return {}; }
+  }
+  var saved = loadState();
+  var checked = Array.isArray(saved.checked) && saved.checked.length === TOTAL ? saved.checked : new Array(TOTAL).fill(false);
+  var deviationMs = typeof saved.deviationMs === 'number' ? saved.deviationMs : 0;
+
+  function saveState() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ checked: checked, deviationMs: deviationMs })); } catch (e) { /* in-memory only */ }
+  }
+
+  document.querySelectorAll('.row-check').forEach(function(box) {
+    var idx = parseInt(box.getAttribute('data-cidx'));
+    box.checked = !!checked[idx];
+    box.addEventListener('change', function() {
+      checked[idx] = box.checked;
+      saveState();
+    });
+  });
+
+  function parseHours(str) {
+    if (!str) return null;
+    var s = str.replace(/–|—/g, '-');
+    var re = /(\d{1,2}:\d{2}|\d{1,4})\s*-\s*(\d{1,2}:\d{2}|\d{1,4})/g;
+    var m, out = [];
+    function toMin(tok) {
+      if (tok.indexOf(':') >= 0) { var p = tok.split(':'); return parseInt(p[0])*60 + parseInt(p[1]); }
+      return tok.length <= 2 ? parseInt(tok)*60 : parseInt(tok.slice(0,-2))*60 + parseInt(tok.slice(-2));
+    }
+    while ((m = re.exec(s)) !== null) {
+      try { out.push([toMin(m[1]), toMin(m[2])]); } catch(e) {}
+    }
+    return out;
+  }
+  function isOpenAt(hoursStr, date) {
+    var ranges = parseHours(hoursStr);
+    if (!ranges || !ranges.length) return null;
+    var cur = date.getHours()*60 + date.getMinutes();
+    return ranges.some(function(r) { return cur >= r[0] && cur <= r[1]; });
+  }
+  function fmtDayTime(d) {
+    var p = function(n) { return String(n).padStart(2,'0'); };
+    return DAYS[d.getDay()] + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function applyDeviation() {
+    document.querySelectorAll('.row').forEach(function(rowEl) {
+      var plannedIso = rowEl.getAttribute('data-planned');
+      var planned = new Date(plannedIso);
+      var shifted = new Date(planned.getTime() + deviationMs);
+      rowEl.querySelector('[data-time-el]').textContent = fmtDayTime(shifted);
+      var hours = rowEl.getAttribute('data-hours');
+      var statusEl = rowEl.querySelector('[data-status-el]');
+      if (hours) {
+        var open = isOpenAt(hours, shifted);
+        statusEl.style.display = '';
+        statusEl.textContent = open ? 'OFFEN' : 'GESCHLOSSEN';
+        statusEl.className = 'tag ' + (open ? 'tag-open' : 'tag-closed');
+        rowEl.classList.toggle('row-closed', !open);
+      }
+    });
+  }
+  applyDeviation();
+
+  var syncBtn = document.getElementById('syncBtn');
+  var syncStatus = document.getElementById('syncStatus');
+
+  syncBtn.addEventListener('click', function() {
+    var dashRaw;
+    try { dashRaw = localStorage.getItem('brm600_schoenbuch_v1'); }
+    catch (e) { syncStatus.textContent = 'kein Zugriff'; return; }
+
+    var arr = null;
+    if (dashRaw) {
+      try {
+        var dash = JSON.parse(dashRaw);
+        if (Array.isArray(dash.arr)) arr = dash.arr;
+      } catch (e) { /* faellt unten auf die Start-Rueckfallebene zurueck */ }
+    }
+
+    var lastIdx = -1;
+    if (arr) {
+      for (var i = arr.length - 1; i >= 0; i--) { if (arr[i]) { lastIdx = i; break; } }
+    }
+
+    if (lastIdx === -1) {
+      // Vor CP1 (km 150.3) gibt es noch keinen eingetragenen Kontrollpunkt.
+      // Rueckfallebene: Start (So 08:05) als Anker nehmen.
+      deviationMs = 0;
+      saveState();
+      applyDeviation();
+      syncStatus.textContent = '±0:00h';
+      return;
+    }
+
+    var actual = new Date(arr[lastIdx]);
+    var plannedCp = checkpoints[lastIdx].planned;
+    deviationMs = actual.getTime() - plannedCp.getTime();
+    saveState();
+    applyDeviation();
+
+    var devH = deviationMs / 3600000;
+    var sign = devH >= 0 ? '+' : '-';
+    var absH = Math.abs(devH);
+    var hh = Math.floor(absH), mm = Math.round((absH-hh)*60);
+    syncStatus.textContent = sign + hh + ':' + String(mm).padStart(2,'0') + 'h';
+  });
+
+  // beim Laden: gespeicherte Abweichung sofort minimal anzeigen
+  var devH0 = deviationMs / 3600000;
+  var sign0 = devH0 >= 0 ? '+' : '-';
+  var absH0 = Math.abs(devH0);
+  var hh0 = Math.floor(absH0), mm0 = Math.round((absH0-hh0)*60);
+  syncStatus.textContent = sign0 + hh0 + ':' + String(mm0).padStart(2,'0') + 'h';
+
+  function buildExportText() {
+    var lines = ['Fueling-Strategie SufferBuffer© — Stand ' + new Date().toLocaleString('de-DE')];
+    lines.push('');
+    document.querySelectorAll('.row').forEach(function(row) {
+      var box = row.querySelector('.row-check');
+      var km = row.querySelector('.row-km').textContent;
+      var label = row.querySelector('[data-label-el]').textContent;
+      var mark = box.checked ? '[x]' : '[ ]';
+      lines.push(mark + ' ' + km + ' — ' + label);
+    });
+    return lines.join('\n');
+  }
+  document.getElementById('exportBtn').addEventListener('click', function() {
+    var text = buildExportText();
+    var box = document.getElementById('exportBox');
+    var ta = document.getElementById('exportText');
+    var hint = document.getElementById('exportHint');
+    ta.value = text; box.style.display = 'block'; ta.focus(); ta.select();
+    var copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() { copied = true; hint.textContent = 'Automatisch kopiert ✓ — alternativ Text unten manuell markieren.'; });
+      }
+    } catch (e) {}
+    try { if (!copied) document.execCommand('copy'); } catch (e) {}
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  // Zweimal tippen statt confirm(): der Dialog wird in eingebetteten Ansichten blockiert.
+  var resetBtnEl = document.getElementById('resetBtn');
+  var armed = false, armTimer = null, resetLabel = resetBtnEl.textContent;
+  resetBtnEl.addEventListener('click', function() {
+    if (!armed) {
+      armed = true;
+      resetBtnEl.textContent = 'Nochmal tippen = zurücksetzen';
+      armTimer = setTimeout(function() { armed = false; resetBtnEl.textContent = resetLabel; }, 4000);
+      return;
+    }
+    clearTimeout(armTimer); armed = false; resetBtnEl.textContent = resetLabel;
+    checked = new Array(TOTAL).fill(false);
+    deviationMs = 0;
+    saveState();
+    document.querySelectorAll('.row-check').forEach(function(box) {
+      var idx = parseInt(box.getAttribute('data-cidx'));
+      box.checked = !!checked[idx];
+    });
+    applyDeviation();
+    syncStatus.textContent = 'Zurückgesetzt auf Basisplan.';
+    document.getElementById('exportBox').style.display = 'none';
+  });
+})();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  });
+}
+</script>
+
+</body>
+</html>
