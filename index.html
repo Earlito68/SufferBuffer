@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="SufferBuffer" />
+<link rel="apple-touch-icon" href="icon.png">
+<title>BRM 200 Gravel Schönbuch</title>
+<style>
+  :root {
+    --bg: #090c10; --surface: #10151c; --surface-2: #171e27; --surface-3: #1e2733;
+    --border: #2a3542; --border-strong: #3d4b5c;
+    --text: #ffffff; --text-dim: #93a1af; --text-faint: #5c6b7a;
+    --amber: #f5a623; --teal: #4fe3d4; --red: #e5484d; --green: #3ecf8e;
+    --mauve: #c98aa6; --darkred: #7a1f1f;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background: var(--bg); color: var(--text); margin: 0; min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: -0.01em; }
+  .stat-red { color: var(--red); } .stat-green { color: var(--green); } .stat-darkred { color: var(--darkred); } .stat-amber { color: var(--amber); }
+
+  .topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: rgba(9,12,16,0.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .topbar-inner { padding: 14px 18px; }
+  h1 { font-size: 19px; font-weight: 700; margin: 0; color: var(--text); }
+  .route { font-size: 11.5px; color: var(--text-dim); display: block; margin-top: 2px; }
+  .nav-link { font-size: 11.5px; color: var(--amber); display: block; margin-top: 6px; text-decoration: none; font-weight: 600; }
+
+  .main { padding: 18px; display: flex; flex-direction: column; gap: 16px; max-width: 720px; margin: 0 auto; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .panel-head h2 { font-size: 15px; margin: 0; }
+  .panel-sub { font-size: 12px; color: var(--text); display: flex; gap: 10px; flex-wrap: wrap; }
+
+  svg { display: block; width: 100%; height: auto; }
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 8px; font-size: 11px; color: var(--text-dim); }
+  .chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+  .ledger { display: flex; flex-direction: column; gap: 12px; }
+  .cp-row { padding: 10px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface-2); overflow: hidden; }
+  .cp-heading { font-size: 14px; font-weight: 600; color: var(--text); padding: 8px 10px; border-radius: 8px; margin: -10px -10px 10px; background: var(--surface-3); }
+  .cp-heading .stg { opacity: 0.7; font-weight: 500; margin-right: 4px; }
+  .cp-heading .km2 { opacity: 0.7; font-weight: 500; margin-left: 5px; font-size: 12.5px; }
+  .cp-row.control { border-left: 3px solid var(--border-strong); }
+  .cp-row.control .cp-heading { background: rgba(255,255,255,0.05); }
+  .cp-row.finish { border-left: 4px solid var(--amber); }
+  .cp-row.finish .cp-heading { background: rgba(245,166,35,0.18); }
+  .cp-checks { display: flex; align-items: center; gap: 22px; padding: 2px 2px 4px; }
+  .cp-check { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 60px; padding: 6px 10px; margin: -6px -10px; border-radius: 8px; }
+  .cp-check:active { background: var(--surface-3); }
+  .cp-check input { width: 24px; height: 24px; accent-color: var(--amber); }
+  .cp-check .lbl2 { font-size: 10.5px; color: var(--text); text-transform: uppercase; }
+  .cp-time-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; padding-left: 2px; }
+  .cp-time-line .cp-time-label { font-size: 11px; color: var(--text-dim); }
+  .cp-arrival-row { margin-top: 6px; width: 100%; display: flex; gap: 8px; align-items: stretch; }
+  .cp-arrival-row input[type="datetime-local"] {
+    color-scheme: dark; font-family: ui-monospace, 'SF Mono', Menlo, monospace; background: #35414f;
+    border: 1px solid #4a5768; color: var(--text); border-radius: 6px; padding: 7px 10px; font-size: 14px;
+    flex: 1; min-width: 0; display: block;
+  }
+  .cp-arrival-row input:focus { border-color: var(--amber); }
+  .now-btn { flex-shrink: 0; min-width: 60px; min-height: 60px; padding: 0 14px; font-size: 12px; font-weight: 700; background: var(--surface-3); border: 1px solid var(--border-strong); color: var(--amber); border-radius: 8px; cursor: pointer; }
+  .now-btn:active { background: var(--border-strong); }
+  .delta-chip { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 6px; background: var(--surface); white-space: nowrap; flex-shrink: 0; }
+  .cp-note { font-size: 11px; color: var(--amber); margin-top: 6px; line-height: 1.4; }
+
+  .cp-buffer-bar { height: 8px; margin-top: 6px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 4px; overflow: hidden; }
+  .cp-buffer-fill { height: 100%; border-radius: 3px 0 0 3px; }
+
+  .cp-summary { margin-top: 4px; padding: 10px 8px 2px; border-top: 2px solid var(--border-strong); display: flex; flex-direction: column; gap: 5px; }
+  .cp-summary div { font-size: 12.5px; color: var(--text); display: flex; justify-content: space-between; }
+  .cp-summary .k { color: var(--text-dim); }
+
+  .foot { text-align: center; padding: 16px 16px 28px; font-size: 10.5px; color: var(--text-faint); }
+  .footer-actions { display: flex; gap: 10px; padding: 4px 18px 0; max-width: 720px; margin: 0 auto; }
+  .footer-btn { flex: 1; min-height: 60px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); }
+  .footer-btn:active { background: var(--surface-3); }
+  .footer-btn.danger { color: var(--red); border-color: rgba(229,72,77,0.4); }
+  .export-box { max-width: 720px; margin: 10px auto 0; padding: 0 18px; }
+  .export-hint { font-size: 11px; color: var(--text-dim); margin: 0 0 6px; }
+  .export-box textarea { width: 100%; height: 140px; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 8px; padding: 10px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; line-height: 1.5; resize: vertical; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <h1>SufferBuffer<sup>©</sup> for BRM 200 Gravel Schönbuch</h1>
+    <span class="route">Tübingen → Tübingen · 201.7 km · Start Sa 14.11. 08:00 · Ziellimit 21:30</span>
+    <a href="./fueling.html" class="nav-link">🧴 Fueling-Liste öffnen →</a>
+  </div>
+</header>
+
+<main class="main">
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Höhenprofil</h2>
+      <span class="panel-sub">201.7 km · +1'478 m · 4 Kontrollen</span>
+    </div>
+    <svg id="elevChart" viewBox="0 0 1000 345" preserveAspectRatio="none" role="img" aria-label="Höhenprofil mit Kontrollen">
+      <defs>
+        <linearGradient id="greenFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3ecf8e" stop-opacity="0.5" />
+          <stop offset="100%" stop-color="#3ecf8e" stop-opacity="0.05" />
+        </linearGradient>
+        <linearGradient id="mauveFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#c98aa6" stop-opacity="0.4" />
+          <stop offset="100%" stop-color="#c98aa6" stop-opacity="0.05" />
+        </linearGradient>
+      </defs>
+      <g id="darkStrip"></g>
+      <path id="areaMauve" />
+      <path id="areaGreen" />
+      <polyline id="elevLine" fill="none" stroke="#4fe3d4" stroke-width="2" stroke-linejoin="round" />
+      <line id="posLine" x1="0" y1="55" x2="0" y2="287" stroke="#eaeff4" stroke-width="1.5" stroke-dasharray="3 3" style="display:none;" />
+      <g id="cpDots"></g>
+      <g id="axisLabels" class="mono" font-size="26" fill="#eaeff4" font-weight="600"></g>
+    </svg>
+    <div class="chart-legend">
+      <span><i class="dot" style="background:#3ecf8e;"></i> erreicht</span>
+      <span><i class="dot" style="background:#5c6b7a;"></i> Dunkelheit nach Plan (ab ca. 17:20)</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Streckenkontrolle</h2>
+      <span class="panel-sub"><span>📷 Foto</span><span>✅ Done</span><span>🕒 Ankunft</span></span>
+    </div>
+    <div class="ledger" id="ledger"></div>
+  </section>
+</main>
+
+<div class="footer-actions">
+  <button type="button" id="exportBtn" class="footer-btn">Fortschritt kopieren</button>
+  <button type="button" id="resetBtn" class="footer-btn danger">Hard Reset</button>
+</div>
+<div id="exportBox" class="export-box" style="display:none;">
+  <p class="export-hint" id="exportHint">Text unten antippen, alles markieren, kopieren.</p>
+  <textarea id="exportText" readonly></textarea>
+</div>
+
+<footer class="foot">
+  Basierend auf Route 57797318 &amp; Timesheet 2026-11_BRM_200_Gravel_Timesheet_20261108.xlsx (25 km/h, Faktor auf 1.6 / ab −0.4, 0:15 je CP) · Stand 08.11.2026<br>
+  Min an den CPs = Richtzeit, nur indikativ (ACP seit 02/2024). Verbindlich ist allein das Ziellimit.<br>
+  100% offline-fähig — keine Internetverbindung erforderlich.
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ================= STORAGE ================= */
+  var STORE_KEY = "brm200_gravel_schoenbuch_v2";
+  var N = 5;
+  function loadState() {
+    try { var raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : {}; }
+    catch (e) { return {}; }
+  }
+  function saveState() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* in-memory only */ }
+  }
+  var saved = loadState();
+  var state = {
+    reachedIndex: typeof saved.reachedIndex === "number" ? saved.reachedIndex : -1,
+    foto: Array.isArray(saved.foto) && saved.foto.length === N ? saved.foto : new Array(N).fill(false),
+    arr: Array.isArray(saved.arr) && saved.arr.length === N ? saved.arr : new Array(N).fill(null)
+  };
+
+  /* ================= DATA ================= */
+  var raw = [[0,322],[2.5,333],[5,353],[7.5,375],[10,417],[12.5,464],[15,545],[17.5,573],[20,588],[22.5,688],[25,778],[27.5,780],[30,773],[32.07,799],[32.5,796],[35,720],[37.5,693],[40,688],[42.5,678],[45,666],[47.5,655],[50,649],[52.5,640],[55,630],[57.5,623],[60,620],[62.5,623],[65,602],[67.5,590],[70,582],[72.5,580],[75,561],[77.5,561],[79.53,536],[80,524],[82.5,511],[85,533],[87.5,560],[90,575],[92.5,586],[95,620],[96.57,716],[97.5,634],[100,560],[102.5,529],[105,529],[107.5,531],[110,536],[112.5,539],[115,542],[117.5,546],[120,550],[122.5,558],[125,558],[127.5,570],[130,576],[132.5,576],[135,574],[135.58,571],[137.5,645],[140,617],[142.5,608],[145,625],[147.5,634],[150,644],[152.5,636],[155,645],[157.5,653],[160,666],[162.5,667],[165,680],[167.5,685],[170,695],[172.5,701],[175,714],[177.5,726],[180,704],[182.5,580],[185,530],[187.5,482],[190,421],[192.5,401],[195,371],[197.5,349],[200,331],[201.69,324]];
+  var landmarks = [
+    { i: 0, ledgerRow: null },
+    { i: 13, ledgerRow: 0 },
+    { i: 33, ledgerRow: 1 },
+    { i: 41, ledgerRow: 2 },
+    { i: 58, ledgerRow: 3 },
+    { i: 85, ledgerRow: 4 }
+  ];
+
+  // plannedISO = Ankunft laut Timesheet, closingISO = rechnerische Richtzeit (201.69 km / 13:30 h = 14.94 km/h); am Ziel = verbindliches Limit.
+  var ledgerData = [
+    { stg:'CP1', name:'Schloss Lichtenstein', km:32.1,  plannedISO:'2026-11-14T10:10', closingISO:'2026-11-14T10:08', planLabel:'Sa 10:10', closeLabel:'Sa 10:08 (indikativ)', type:'control', note:'Richtzeit liegt vor der Plan-Ankunft (Albaufstieg). Nicht verbindlich, nicht drücken.' },
+    { stg:'CP2', name:'Wolfstal',             km:79.5,  plannedISO:'2026-11-14T12:28', closingISO:'2026-11-14T13:19', planLabel:'Sa 12:28', closeLabel:'Sa 13:19 (indikativ)', type:'control', note:'Option km 85.00 (BKR, Laden bis 13:00): nur nachfüllen, wenn vor 12:50 dort.' },
+    { stg:'CP3', name:'Bussen',               km:96.6,  plannedISO:'2026-11-14T13:47', closingISO:'2026-11-14T14:28', planLabel:'Sa 13:47', closeLabel:'Sa 14:28 (indikativ)', type:'control', note:'' },
+    { stg:'CP4', name:'Sigmaringen',          km:135.6, plannedISO:'2026-11-14T15:41', closingISO:'2026-11-14T17:04', planLabel:'Sa 15:41', closeLabel:'Sa 17:04 (indikativ)', type:'control', note:'Licht bereit: Sonnenuntergang 16:46, dunkel ab ca. 17:20 (ca. km 167).' },
+    { stg:'FIN', name:'Tübingen Herzog-Ulrich', km:201.7, plannedISO:'2026-11-14T18:54', closingISO:'2026-11-14T21:30', planLabel:'Sa 18:54', closeLabel:'Sa 21:30 (Limit)', type:'finish', note:'' }
+  ];
+  ledgerData.forEach(function (d) { d.planned = new Date(d.plannedISO); d.closing = new Date(d.closingISO); });
+
+  /* ================= HELPERS ================= */
+  var DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  function fmtClock(d) {
+    if (!d) return '—';
+    return DAYS[d.getDay()] + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+  function fmtSignedH(hours) {
+    if (hours === null || hours === undefined || isNaN(hours)) return '—';
+    var sign = hours < 0 ? '-' : '+';
+    var abs = Math.abs(hours);
+    var hh = Math.floor(abs);
+    var mm = Math.floor((abs - hh) * 60 + 1e-6);
+    return sign + hh + ':' + String(mm).padStart(2, '0');
+  }
+  function deltaHours(a, b) { return (a.getTime() - b.getTime()) / 3600000; }
+  function actualFor(idx) { var v = state.arr[idx]; return v ? new Date(v) : null; }
+
+  // Ist-Ankunft, sonst Plan + Abweichung der letzten erfassten Kontrolle.
+  function projectedArrivalFor(idx) {
+    var a = actualFor(idx);
+    if (a) return a;
+    for (var j = idx - 1; j >= 0; j--) {
+      var aj = actualFor(j);
+      if (aj) return new Date(ledgerData[idx].planned.getTime() + (aj.getTime() - ledgerData[j].planned.getTime()));
+    }
+    return null;
+  }
+  function deltaPlanFor(idx) { var p = projectedArrivalFor(idx); return p ? deltaHours(ledgerData[idx].planned, p) : null; }
+  function deltaMinFor(idx) { var p = projectedArrivalFor(idx); return p ? deltaHours(ledgerData[idx].closing, p) : null; }
+
+  /* ================= ELEVATION CHART ================= */
+  var W = 1000, H = 345, PAD_T = 55, PAD_B = 58, SOCKEL = 10;
+  var maxKm = 205, minEle = 250, maxEle = 850;
+  function X(km) { return (km / maxKm) * W; }
+  function Y(ele) { return PAD_T + (1 - (ele - minEle) / (maxEle - minEle)) * (H - PAD_T - PAD_B); }
+  var baseY = H - PAD_B + SOCKEL;
+
+  document.getElementById('elevLine').setAttribute('points', raw.map(function (p) { return X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1); }).join(' '));
+
+  function areaPath(kmFrom, kmTo) {
+    var p = raw.filter(function (r) { return r[0] >= kmFrom - 0.01 && r[0] <= kmTo + 0.01; });
+    if (p.length < 2) return '';
+    var d = 'M ' + X(p[0][0]).toFixed(1) + ' ' + baseY + ' L ';
+    d += p.map(function (r) { return X(r[0]).toFixed(1) + ' ' + Y(r[1]).toFixed(1); }).join(' L ');
+    return d + ' L ' + X(p[p.length - 1][0]).toFixed(1) + ' ' + baseY + ' Z';
+  }
+
+  // Dunkelheit nach Plan: ab ca. km 167 (17:20) bis Ziel.
+  (function renderDark() {
+    var g = document.getElementById('darkStrip');
+    var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    r.setAttribute('x', X(167)); r.setAttribute('y', PAD_T - 10);
+    r.setAttribute('width', X(201.7) - X(167)); r.setAttribute('height', H - PAD_B - PAD_T + 10);
+    r.setAttribute('fill', '#5c6b7a'); r.setAttribute('fill-opacity', '0.18');
+    g.appendChild(r);
+  })();
+
+  function renderChart() {
+    var reachedKm = state.reachedIndex >= 0 ? ledgerData[state.reachedIndex].km : 0;
+    var mauve = document.getElementById('areaMauve');
+    mauve.setAttribute('d', areaPath(0, 201.7)); mauve.setAttribute('fill', 'url(#mauveFill)');
+    var green = document.getElementById('areaGreen');
+    if (reachedKm > 0) { green.setAttribute('d', areaPath(0, reachedKm)); green.setAttribute('fill', 'url(#greenFill)'); }
+    else { green.setAttribute('d', ''); }
+    var posLine = document.getElementById('posLine');
+    if (reachedKm > 0) { posLine.setAttribute('x1', X(reachedKm)); posLine.setAttribute('x2', X(reachedKm)); posLine.style.display = 'block'; }
+    else { posLine.style.display = 'none'; }
+
+    var dotsG = document.getElementById('cpDots'); dotsG.innerHTML = '';
+    var axis = document.getElementById('axisLabels'); axis.innerHTML = '';
+    var axisLastX = -9999, axisLastRow = 0;
+    landmarks.forEach(function (lm) {
+      var pt = raw[lm.i];
+      var reached = lm.ledgerRow === null ? true : (lm.ledgerRow <= state.reachedIndex);
+      var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', X(pt[0])); c.setAttribute('cy', Y(pt[1])); c.setAttribute('r', '13.5');
+      c.setAttribute('fill', reached ? '#3ecf8e' : 'none');
+      c.setAttribute('stroke', reached ? '#090c10' : '#c98aa6');
+      c.setAttribute('stroke-width', reached ? '1.5' : '3.5');
+      dotsG.appendChild(c);
+      var lx = X(pt[0]);
+      var thisRow = 0;
+      if (lx - axisLastX < 70) { thisRow = axisLastRow === 0 ? 1 : 0; }
+      axisLastX = lx; axisLastRow = thisRow;
+      var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', lx); t.setAttribute('y', thisRow === 0 ? (H - 32) : (H - 8));
+      t.setAttribute('text-anchor', lx < 30 ? 'start' : (lx > 970 ? 'end' : 'middle'));
+      t.textContent = Math.round(pt[0]);
+      axis.appendChild(t);
+    });
+  }
+
+  /* ================= LEDGER ================= */
+  var ledgerEl = document.getElementById('ledger');
+
+  function buildLedgerRow(idx) {
+    var d = ledgerData[idx];
+    var row = document.createElement('div');
+    row.className = 'cp-row ' + d.type;
+    row.setAttribute('data-idx', idx);
+    row.innerHTML =
+      '<div class="cp-heading"><span class="stg mono">' + d.stg + '</span>' + d.name + '<span class="km2 mono">km ' + d.km + '</span></div>' +
+      '<div class="cp-checks">' +
+        '<label class="cp-check"><input type="checkbox" class="foto-check" data-idx="' + idx + '"><span class="lbl2">Foto</span></label>' +
+        '<label class="cp-check"><input type="checkbox" class="done-check" data-idx="' + idx + '"><span class="lbl2">Done</span></label>' +
+      '</div>' +
+      '<div class="cp-time-line"><span class="cp-time-label mono">Plan-Ankunft ' + d.planLabel + '</span>' +
+        '<span class="delta-chip mono" id="chip-plan-' + idx + '"></span></div>' +
+      '<div class="cp-arrival-row">' +
+        '<input type="datetime-local" step="60" class="arr-input" id="arr-' + idx + '" data-idx="' + idx + '" aria-label="Ist-Ankunft ' + d.stg + '">' +
+        '<button type="button" class="now-btn" data-idx="' + idx + '">JETZT</button>' +
+      '</div>' +
+      '<div class="cp-time-line"><span class="cp-time-label mono">Min ' + d.closeLabel + '</span>' +
+        '<span class="delta-chip mono" id="chip-min-' + idx + '"></span></div>' +
+      '<div class="cp-buffer-bar"><div class="cp-buffer-fill" id="bar-' + idx + '"></div></div>' +
+      (d.note ? '<div class="cp-note">' + d.note + '</div>' : '');
+    return row;
+  }
+
+  function renderLedger() {
+    ledgerEl.innerHTML = '';
+    for (var i = 0; i < ledgerData.length; i++) ledgerEl.appendChild(buildLedgerRow(i));
+    var summary = document.createElement('div');
+    summary.className = 'cp-summary';
+    summary.innerHTML =
+      '<div><span class="k">Prognostizierte Ankunft Ziel</span><span class="mono" id="final-forecast"></span></div>' +
+      '<div><span class="k">Geplante Ankunft Ziel</span><span class="mono">Sa 18:54</span></div>' +
+      '<div><span class="k">Ziellimit (verbindlich)</span><span class="mono">Sa 21:30</span></div>';
+    ledgerEl.appendChild(summary);
+
+    ledgerEl.querySelectorAll('.foto-check').forEach(function (cb) {
+      var idx = parseInt(cb.getAttribute('data-idx'));
+      cb.checked = !!state.foto[idx];
+      cb.addEventListener('change', function () { state.foto[idx] = cb.checked; saveState(); });
+    });
+    ledgerEl.querySelectorAll('.done-check').forEach(function (cb) {
+      var idx = parseInt(cb.getAttribute('data-idx'));
+      cb.checked = idx <= state.reachedIndex;
+      cb.addEventListener('change', function () {
+        state.reachedIndex = cb.checked ? idx : idx - 1;
+        saveState(); renderLedger(); renderChart();
+      });
+    });
+    ledgerEl.querySelectorAll('.arr-input').forEach(function (inp) {
+      var idx = parseInt(inp.getAttribute('data-idx'));
+      inp.value = state.arr[idx] || '';
+      inp.addEventListener('input', function () { state.arr[idx] = inp.value || null; saveState(); updateDeltaChips(); });
+    });
+    ledgerEl.querySelectorAll('.now-btn').forEach(function (btn) {
+      var idx = parseInt(btn.getAttribute('data-idx'));
+      btn.addEventListener('click', function () {
+        var iso = nowLocalISO();
+        state.arr[idx] = iso;
+        var inp = ledgerEl.querySelector('.arr-input[data-idx="' + idx + '"]');
+        if (inp) inp.value = iso;
+        saveState(); updateDeltaChips();
+      });
+    });
+    updateDeltaChips();
+  }
+
+  function nowLocalISO() {
+    var d = new Date();
+    var p = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  // 200 km: Puffer sind klein, Skala daher 0-2 h statt 0-6 h.
+  function bufferBarColor(h) {
+    if (h === null) return 'var(--border-strong)';
+    if (h > 1.5) return '#3ecf8e';
+    if (h >= 0.75) return '#f2d024';
+    if (h >= 0.25) return '#f5a623';
+    return '#e5484d';
+  }
+  function bufferBarPct(h) { return h === null ? 0 : Math.max(0, Math.min(1, h / 2)) * 100; }
+
+  function updateDeltaChips() {
+    for (var i = 0; i < ledgerData.length; i++) {
+      var dp = deltaPlanFor(i), dm = deltaMinFor(i);
+      var cp = document.getElementById('chip-plan-' + i), cm = document.getElementById('chip-min-' + i);
+      if (cp) { cp.textContent = 'Plan ' + fmtSignedH(dp); cp.className = 'delta-chip mono ' + (dp === null ? '' : (dp >= 0 ? 'stat-green' : 'stat-red')); }
+      if (cm) { cm.textContent = 'Min ' + fmtSignedH(dm); cm.className = 'delta-chip mono ' + (dm === null ? '' : (dm >= 0 ? 'stat-green' : 'stat-darkred')); }
+      var bar = document.getElementById('bar-' + i);
+      if (bar) { bar.style.width = bufferBarPct(dm) + '%'; bar.style.background = bufferBarColor(dm); }
+    }
+    var fc = document.getElementById('final-forecast');
+    if (fc) {
+      var last = ledgerData.length - 1;
+      fc.textContent = fmtClock(projectedArrivalFor(last));
+      var dmL = deltaMinFor(last);
+      fc.className = 'mono ' + (dmL === null ? '' : (dmL >= 0 ? 'stat-green' : 'stat-darkred'));
+    }
+  }
+
+  /* ================= EXPORT / RESET ================= */
+  function buildExportText() {
+    var lines = ['SufferBuffer© BRM 200 Gravel — Stand ' + fmtClock(new Date())];
+    lines.push('Erreicht: ' + (state.reachedIndex >= 0 ? ledgerData[state.reachedIndex].name + ' (km ' + ledgerData[state.reachedIndex].km + ')' : 'Start (km 0)'));
+    lines.push('');
+    for (var i = 0; i < ledgerData.length; i++) {
+      var d = ledgerData[i];
+      lines.push(d.stg + ' ' + d.name + ' (km ' + d.km + '): Ankunft ' + (state.arr[i] ? state.arr[i].replace('T', ' ') : '—') + ' | ΔPlan ' + fmtSignedH(deltaPlanFor(i)) + ' | ΔMin ' + fmtSignedH(deltaMinFor(i)));
+    }
+    return lines.join('\n');
+  }
+  document.getElementById('exportBtn').addEventListener('click', function () {
+    var text = buildExportText();
+    var box = document.getElementById('exportBox'), ta = document.getElementById('exportText'), hint = document.getElementById('exportHint');
+    ta.value = text; box.style.display = 'block'; ta.focus(); ta.select();
+    var copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { copied = true; hint.textContent = 'Automatisch kopiert ✓ — alternativ Text unten manuell markieren.'; }).catch(function () {});
+      }
+    } catch (e) {}
+    try { if (!copied) document.execCommand('copy'); } catch (e) {}
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  // Zweimal tippen statt confirm().
+  var resetBtn = document.getElementById('resetBtn');
+  var armed = false, armTimer = null, resetLabel = resetBtn.textContent;
+  resetBtn.addEventListener('click', function () {
+    if (!armed) {
+      armed = true;
+      resetBtn.textContent = 'Nochmal tippen = alles löschen';
+      armTimer = setTimeout(function () { armed = false; resetBtn.textContent = resetLabel; }, 4000);
+      return;
+    }
+    clearTimeout(armTimer); armed = false; resetBtn.textContent = resetLabel;
+    state.reachedIndex = -1;
+    state.foto = new Array(N).fill(false);
+    state.arr = new Array(N).fill(null);
+    saveState(); renderChart(); renderLedger();
+    document.getElementById('exportBox').style.display = 'none';
+  });
+
+  /* ================= INIT ================= */
+  renderChart();
+  renderLedger();
+  try {
+    var target = ledgerEl.querySelector('.cp-row[data-idx="' + (state.reachedIndex + 1) + '"]');
+    if (target && state.reachedIndex >= 0 && state.reachedIndex < ledgerData.length - 1) {
+      setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300);
+    }
+  } catch (e) {}
+})();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('./sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>
